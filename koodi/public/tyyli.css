@@ -1,0 +1,26 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #111; color: #ddd; font-family: "Courier New", monospace; overflow: hidden; }
+#aula { max-width: 640px; margin: 6vh auto; text-align: center; padding: 20px; border: 3px solid #555; background: #1c1c1c; }
+#aula h1 { color: #e8c33a; letter-spacing: 4px; text-shadow: 3px 3px #7a1b1b; font-size: 42px; margin: 0 0 6px; }
+#aula h1 small { font-size: 22px; color: #ccc; text-shadow: none; }
+.ali { color: #aaa; }
+button { font-family: inherit; background: #3a3a3a; color: #eee; border: 2px outset #777; padding: 8px 14px; margin: 4px; cursor: pointer; font-size: 15px; }
+button:hover { background: #4a4a4a; }
+button:disabled { opacity: .45; cursor: default; }
+#linkkiKentta { width: 80%; font-family: inherit; padding: 6px; background: #000; color: #8f8; border: 1px solid #555; }
+.ohje { text-align: left; font-size: 13px; color: #aaa; margin-top: 18px; line-height: 1.5; }
+.attr { font-size: 11px; color: #777; }
+#peli { position: fixed; inset: 0; }
+#kentta { position: absolute; left: 0; top: 0; image-rendering: pixelated; cursor: crosshair; }
+#paneeli { position: absolute; right: 0; top: 0; bottom: 0; width: 212px; background: #222; border-left: 3px solid #555; padding: 8px 10px; overflow-y: auto; font-size: 13px; }
+#minikartta { border: 2px solid #555; image-rendering: pixelated; display: block; cursor: pointer; }
+#joukkue { margin-top: 6px; font-weight: bold; font-size: 15px; }
+#raha { color: #e8c33a; font-size: 16px; margin: 4px 0 8px; }
+#koulutus button { display: block; width: 100%; text-align: left; margin: 3px 0; font-size: 13px; padding: 5px 7px; }
+#jono { font-size: 12px; color: #aaa; min-height: 16px; }
+#valinta { margin-top: 8px; border-top: 1px solid #444; padding-top: 6px; min-height: 80px; }
+.mittari { height: 7px; background: #000; border: 1px solid #555; margin: 2px 0 5px; }
+.mittari > div { height: 100%; }
+#loki { margin-top: 8px; border-top: 1px solid #444; padding-top: 6px; font-size: 12px; color: #bbb; max-height: 180px; overflow: hidden; }
+#ilmoitus { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); background: rgba(0,0,0,.85); border: 3px solid #e8c33a; padding: 24px 40px; font-size: 26px; color: #e8c33a; text-align: center; }
+.sininen { color: #4b8ff0; } .punainen { color: #f0484d; }

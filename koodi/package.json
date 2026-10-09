@@ -1,0 +1,15 @@
+{
+  "name": "lahiosota",
+  "version": "1.0.0",
+  "description": "Lähiösota: Etelä-Tampere – raakaversio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.22.0"
+  },
+  "private": true
+}

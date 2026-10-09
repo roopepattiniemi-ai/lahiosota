@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: lahiosota
+    runtime: node
+    plan: free
+    buildCommand: cd koodi && npm install
+    startCommand: cd koodi && npm start
+    autoDeploy: true

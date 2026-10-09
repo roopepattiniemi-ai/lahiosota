@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<title>Lähiösota: Etelä-Tampere (raakaversio)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="tyyli.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+<div id="aula">
+  <h1>LÄHIÖSOTA<br><small>Etelä-Tampere</small></h1>
+  <p class="ali">Multisilta vastaan Peltolammi – raakaversio</p>
+  <div id="aulaNapit">
+    <button id="luo">Luo uusi peli (1v1)</button>
+    <button id="harjoitus">Harjoittele yksin</button>
+  </div>
+  <div id="linkki" hidden>
+    <p>Lähetä tämä linkki kaverille:</p>
+    <input id="linkkiKentta" readonly>
+    <button id="kopioi">Kopioi</button>
+    <p id="odotus">Odotetaan vastustajaa…</p>
+  </div>
+  <div class="ohje">
+    <b>Ohjaus:</b> vasen klikkaus / raahaus = valitse, oikea klikkaus = liiku / kerää tölkit / hyökkää / palauta pantit.
+    Nuolinäppäimet tai WASD (tai hiiri reunaan) = kameran liikutus, rulla = zoom, H = seis, M = musiikki päälle/pois, välilyönti = kamera päämajaan.
+    Ctrl+1–9 = ryhmä, 1–9 = valitse ryhmä. Z/X/C = kouluta Tölkkijussi/Lähiöjermu/Mopopoika.
+  </div>
+  <p class="attr">Karttadata © OpenStreetMap-tekijät (ODbL)</p>
+</div>
+<div id="peli" hidden>
+  <canvas id="kentta"></canvas>
+  <div id="paneeli">
+    <canvas id="minikartta" width="192" height="192"></canvas>
+    <div id="joukkue"></div>
+    <div id="raha"></div>
+    <div id="koulutus"></div>
+    <div id="jono"></div>
+    <div id="valinta"></div>
+    <div id="loki"></div>
+    <div class="attr">© OpenStreetMap-tekijät</div>
+  </div>
+  <div id="ilmoitus" hidden></div>
+</div>
+<script src="peli.js"></script>
+</body>
+</html>

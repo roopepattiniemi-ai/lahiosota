@@ -1,0 +1,8 @@
+venv/
+node_modules/
+__pycache__/
+*.log
+kartta/raw/
+kartta/tiles/
+kartta/feats.pkl
+kartta/_res.json
