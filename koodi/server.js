@@ -75,7 +75,8 @@ wss.on('connection', (ws, req) => {
   if (!team) for (const t of [1, 2]) if (!r.slots[t]) { team = t; break; }
   if (!team) { send(ws, { t: 'virhe', viesti: 'Huone on täynnä (2 pelaajaa).' }); ws.close(); return; }
   r.slots[team] = ws; r.tokens[team] = token; r.emptySince = 0;
-  ws.team = team;
+  ws.team = team; ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   send(ws, { t: 'init', team, huone: code, solo: r.solo, map: r.game.initData() });
   lobbyInfo(r);
   if (r.started) send(ws, { t: 'start' });
@@ -86,6 +87,15 @@ wss.on('connection', (ws, req) => {
     if (!msg || typeof msg !== 'object') return;
     if (msg.t === 'chat') { broadcast(r, { t: 'chat', team, teksti: String(msg.teksti || '').slice(0, 200) }); return; }
     if (!r.started) return;
+    // testikomennot vain yksinpelin harjoitushuoneissa (ei vaikuta 1v1-peleihin)
+    if (msg.t === 'debug' && r.solo) {
+      const g = r.game;
+      if (msg.tap) g.startEvent(String(msg.tap));
+      if (msg.raha) g.players[team].money += Math.min(100000, +msg.raha || 0);
+      if (msg.kanni) for (const u of g.units.values()) if (u.owner === team) u.k = Math.min(100, +msg.kanni);
+      if (msg.spawn) { const h = g.hq(team); g._spawnUnitNear(team, String(msg.spawn), h.x, h.y + 1.5); }
+      return;
+    }
     r.game.command(team, msg);
   });
   ws.on('close', () => {
@@ -94,6 +104,14 @@ wss.on('connection', (ws, req) => {
     if (!r.slots[1] && !r.slots[2]) r.emptySince = Date.now();
   });
 });
+
+// heartbeat: pitää yhteyden auki välityspalvelimien (esim. Render) läpi ja siivoaa kuolleet yhteydet
+setInterval(() => {
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) { ws.terminate(); continue; }
+    ws.isAlive = false; try { ws.ping(); } catch {}
+  }
+}, 25000);
 
 // tyhjien huoneiden siivous
 setInterval(() => {

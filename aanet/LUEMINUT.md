@@ -32,3 +32,52 @@ Huom: puheet ovat robottimaista syntetisaattoria radiopuhelinsuodatuksella – p
 - `sfx_kuolema` – yksikkö kuolee
 - `sfx_koulutus_valmis` – yksikkö valmistui
 - `aani_<yksikkö>_baariin` – tolkkijussi "Mää käyn yhellä...", lahiojermu "Mää käyn yhellä... tai kahella.", mopopoika "Pikaset kaljat!"
+
+## V2 (generoi_aanet_v2.py)
+Efektit:
+| tiedosto | käyttö |
+|---|---|
+| `sfx_dnepr`, `sfx_volvo`, `sfx_monkija`, `sfx_lada` | ajoneuvo lähtee liikkeelle (käskyääni, ~2 s) |
+| `sfx_dnepr_loop`, `sfx_volvo_loop` | moottori käy, `loop: true` (3 s) |
+| `sfx_ajoneuvo_tormays` | Volvo jyrää / ajoneuvo osuu |
+| `sfx_laukaus_emma` | Emma-sarja (Dnepr, Grillimestari) |
+| `sfx_laukaus_suomikp` | Suomi-konepistooli, sarja |
+| `sfx_puukko` | puukon viuhahdus + isku |
+| `sfx_molotovi` | heitto, lasin särkyminen, liekin humahdus |
+| `sfx_molotovi_sammuu` | molotovi sateessa: sihahdus, ei syty |
+| `sfx_parveke_ampuu` | parvekeampujan laukaus + vihellys + osuma (~2 s) |
+| `sfx_trimmeri` | isän trimmeri hyökkää |
+| `sfx_grilli_kary` / `sfx_grilli_ampuu` | grillin sihinä / makkaran sylkäisy |
+| `sfx_rollaattori` | mummon liike |
+| `sfx_poliisi_sireeni` | poliisipartio-tapahtuma (~3 s) |
+| `sfx_sade_loop` | sadekuuro, `loop: true` (7,5 s) |
+| `sfx_tapahtuma_jingle` | soi ennen jokaista tapahtumailmoitusta |
+
+Repliikit `aani_<yksikkö>_<avain>`, avaimet `valittu`, `kuittaus_1`, `kuittaus_2`, `hyokkays`, `baariin`:
+- `parvekeampuja`, `mummo`, `isa_trimmeri`, `grillimestari`: kaikki viisi avainta
+- `volvo`: valittu, kuittaus_1, kuittaus_2, hyokkays
+- `dnepr`: valittu, kuittaus_1, hyokkays
+- `monkija`, `lada`: valittu, kuittaus_1
+
+Tapahtumakuulutukset `aani_tapahtuma_<nimi>` (soita jinglen jälkeen):
+poliisipartio, alkon_alennus, sadekuuro, panttiautomaatti_rikki, pihakirppis, saunailta, taloyhtion_kokous, bussi3_myohassa, kesajuhlat
+
+## Kännitilat (generoi_aanet_kanni.py)
+- `sfx_hikka_1..3` – hikka (satunnainen), kuplaan "Hik!"
+- `sfx_yokkays_1`, `sfx_yokkays_2` – yökkäys + loiskahdus, kuplaan "Nyt lentää laatta!"
+- `sfx_kippis_kilistys` – tuoppien kilistys buustissa, kuplaan "Kippis!"
+- Yhteiset humalarepliikit, joita voi käyttää millä tahansa jalkaväellä kuplan kanssa: `aani_kanni_` + `laatta_1`, `laatta_2`, `yks_viela`, `ups_sori`, `kippis`, `baariin`, `hik`, `kotiin`
+- Sammuminen: vanha `sfx_sammui` (kuorsaus) "Zzz..."-kuplaan
+Suositus: soita repliikki korkeintaan 1/yksikkö/8 s ja vain näkyvissä oleville omille yksiköille, ettei äänimatto täyty.
+- `sfx_laatta_latsahdys` – laattalätän syntyminen (soita yökkäyksen perään tai sen sijaan)
+- `sfx_laatta_karpaset_loop` – hiljainen kärpästen pörinä + kupliminen lätän päälle, `loop: true`, volume ~0.2, vain kun lättä näkyy
+
+## Tapahtumailmoitukset (generoi_aanet_tapahtumat.py)
+Järjestys: `sfx_tapahtuma_varoitus` (5 s ennakkovaroitus) → `sfx_tapahtuma_jingle` + banneri → `aani_tapahtuma_<nimi>` (kuulutus heti jinglen perään, ~1,9 s) → … → `sfx_tapahtuma_loppui` kun tapahtuma päättyy.
+
+## Lisämusiikit (generoi_musiikki.py)
+Kaikki saumattomia looppeja (`loop: true`), suositus volume 0.4–0.5.
+- `musiikki_piiritys` – raskas, 95 BPM, marssivirveli + matala D-riffi, ~1:41
+- `musiikki_kannirynnakko` – 130 BPM, vuorottelee umpa-pa-polkkaa harmonikalla ja särörokkia, ~1:58
+- `musiikki_valikko` – tumma valikkoteema, 80 BPM, ~0:48
+Pelin soittolista: `musiikki_taistelu`, `musiikki_piiritys`, `musiikki_kannirynnakko` (satunnainen, ei samaa kahdesti peräkkäin). Valikossa `musiikki_valikko`.

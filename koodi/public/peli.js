@@ -3,14 +3,43 @@
 (() => {
 const TS = 32; // ruudun koko pikseleinä (grafiikka 32x32)
 const PANEL = 215;
-const TEAM = { 1: { nimi: 'Multisilta', vari: 'sininen', css: '#1f6fe0' }, 2: { nimi: 'Peltolammi', vari: 'punainen', css: '#d8262b' }, 0: { nimi: 'Puolueeton', css: '#999' } };
+const TEAM = { 1: { nimi: 'Multisilta', vari: 'sininen', varinimi: 'sininen', suunta: 'etelässä', css: '#1f6fe0' }, 2: { nimi: 'Peltolammi', vari: 'punainen', varinimi: 'punainen', suunta: 'pohjoisessa', css: '#d8262b' }, 0: { nimi: 'Puolueeton', css: '#999' } };
 const TERRAIN_FILES = ['00_ruoho', '01_metsa', '02_vesi', '03_tie', '04_moottoritie', '05_rata', '06_rakennus', '07_teollisuus', '08_pelto', '09_suo', '10_kallio', '11_puisto', '12_silta'];
 const MINI_COLORS = ['#4d7a35', '#2b4d22', '#2d5a8c', '#777', '#555', '#6b5a48', '#8a8a8a', '#666158', '#9a9a4a', '#4f5f3a', '#7a7066', '#5f9a45', '#8a6a3a'];
 const EXTRA_BUILDINGS = { 'PIZZATEHDAS': 'pizzatehdas', 'KARKKIKAIVOS': 'karkkikaivos', 'LÄÄKINTÄASEMA': 'laakintaasema', 'TIEDUSTELUKESKUS': 'tiedustelukeskus',
   'KAHVILÄHDE': 'kahvilahde', 'PERUNAPELTO': 'perunapelto', 'HUOLTOVARIKKO': 'huoltovarikko', 'ROMUTARVIKEVARASTO': 'romutarvikevarasto',
   'POLTTOAINEVARASTO': 'polttoainevarasto', 'KAASUVARASTO': 'kaasuvarasto', 'LIHAPULLALINNAKE': 'lihapullalinnake' };
-const TRAIN_KEYS = { z: 'tolkkijussi', x: 'lahiojermu', c: 'mopopoika' };
-const STATE_FI = { idle: 'odottaa', move: 'liikkuu', attack: 'hyökkää', collect: 'kerää tölkkejä', return: 'vie pantteja', gohome: 'palaa keräämään', tobar: 'lähti baariin!', sammunut: 'SAMMUNUT' };
+let TRAIN_KEYS = {}; // täytetään yksikkötyypeistä (nappi-kenttä) omalle puolelle
+const WEAPON_SFX = { rk62: 'sfx_laukaus_rk62', jatimatic: 'sfx_laukaus_jatimatic', emma: 'sfx_laukaus_emma', suomikp: 'sfx_laukaus_suomikp', puukko: 'sfx_puukko',
+  parveke: 'sfx_parveke_ampuu', trimmeri: 'sfx_trimmeri', grilli: 'sfx_grilli_ampuu' };
+const MOVE_SFX = { mopopoika: 'sfx_mopo', dnepr: 'sfx_dnepr', volvo: 'sfx_volvo', monkija: 'sfx_monkija', lada: 'sfx_lada', mummo: 'sfx_rollaattori' };
+const VOICES = {
+  tolkkijussi: ['valittu', 'kuittaus_1', 'kuittaus_2', 'kuittaus_3', 'baariin'],
+  lahiojermu: ['valittu', 'kuittaus_1', 'kuittaus_2', 'hyokkays', 'kanni', 'baariin'],
+  mopopoika: ['valittu', 'kuittaus_1', 'kuittaus_2', 'hyokkays', 'baariin'],
+  parvekeampuja: ['valittu', 'kuittaus_1', 'kuittaus_2', 'hyokkays', 'baariin'],
+  mummo: ['valittu', 'kuittaus_1', 'kuittaus_2', 'hyokkays', 'baariin'],
+  isa_trimmeri: ['valittu', 'kuittaus_1', 'kuittaus_2', 'hyokkays', 'baariin'],
+  grillimestari: ['valittu', 'kuittaus_1', 'kuittaus_2', 'hyokkays', 'baariin'],
+  volvo: ['valittu', 'kuittaus_1', 'kuittaus_2', 'hyokkays'],
+  dnepr: ['valittu', 'kuittaus_1', 'hyokkays'],
+  monkija: ['valittu', 'kuittaus_1'], lada: ['valittu', 'kuittaus_1'],
+};
+// Humalakuplat: [tekstit, äänet]
+const KUPLAT = {
+  1: [['Kippis!', 'Skool!', 'Nyt maistuu!', 'Hyvä meininki!', 'Tästä se lähtee!'], ['sfx_kippis_kilistys', 'aani_kanni_kippis']],
+  2: [['Yks vielä!', 'Hik!', 'Mää oon ihan selvä!', 'Kuka siirsi tietä?', 'Sä oot mun paras kaveri!'], ['aani_kanni_yks_viela', 'sfx_hikka_1', 'sfx_hikka_2']],
+  3: [['Mihin tää tie loppuu?', 'Hik! Hik!', 'Kaikki pyörii...'], ['sfx_hikka_3', 'aani_kanni_hik']],
+  hik: [['Hik!', '*hik*', 'Hik! ...anteeks.', 'Hiks!'], ['sfx_hikka_1', 'sfx_hikka_2', 'sfx_hikka_3', 'aani_kanni_hik']],
+  laatta: [['Nyt lentää laatta!', 'Bläääh!', 'Ei olis pitäny...', 'Se kebabi...'], ['aani_kanni_laatta_1', 'aani_kanni_laatta_2', 'sfx_yokkays_1', 'sfx_yokkays_2']],
+  sammui: [['Zzz...', 'Mää vaan lepuutan silmiä...', 'Zzz... äiti...'], ['sfx_sammui']],
+  omiin: [['Ups, sori!', 'Ai se oli meikäläinen?', 'Ei ollu tarkotus!'], ['aani_kanni_ups_sori']],
+  baariin: [['Baariin!', 'Yhet pikaset!', 'Mää käyn yhellä...'], ['aani_kanni_baariin']],
+  kotiin: [['Mää lähen kotiin...', 'Mää meen nukkuun.', 'Huomenna uusiks...'], ['aani_kanni_kotiin']],
+  putkaan: [['Mää en oo tehny mitään!', 'Ei putkaan!', 'Konstaapeli hei...'], ['sfx_poliisi_sireeni']],
+};
+const PAKKO = { sammui: 1, kotiin: 1, putkaan: 1, laatta: 1 }; // nämä ohittavat 8 s rajan
+const STATE_FI = { board: 'nousee kyytiin', molotovi: 'heittää molotovia', jono: 'Alkon jonossa',  idle: 'odottaa', move: 'liikkuu', attack: 'hyökkää', collect: 'kerää tölkkejä', return: 'vie pantteja', gohome: 'palaa keräämään', tobar: 'lähti baariin!', sammunut: 'SAMMUNUT' };
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -28,7 +57,22 @@ function loadImg(key, src) { return new Promise(res => { const i = new Image(); 
 function loadAssets() {
   const p = [];
   TERRAIN_FILES.forEach((f, i) => p.push(loadImg('t' + i, '/grafiikka/maasto/' + f + '.png')));
-  for (const u of ['tolkkijussi', 'lahiojermu', 'mopopoika']) for (const c of ['sininen', 'punainen']) p.push(loadImg(u + '_' + c, `/grafiikka/yksikot/${u}_${c}.png`));
+  for (const [u, t] of Object.entries(map.unitTypes)) {
+    const dir = t.luokka === 'ajoneuvo' ? 'ajoneuvot' : 'yksikot';
+    for (const c of ['sininen', 'punainen']) {
+      for (const suf of ['', '_kavely', '_ampuu', '_sammunut']) if (!(suf === '_ampuu' && !t.ase) && !(suf === '_sammunut' && t.luokka === 'ajoneuvo')) p.push(loadImg(u + '_' + c + suf, `/grafiikka/${dir}/${u}_${c}${suf}.png`));
+      p.push(loadImg('ui_' + u + '_' + c, `/grafiikka/ikonit/ui_${u}${c === 'punainen' ? '_punainen' : ''}.png`));
+    }
+  }
+  p.push(loadImg('poliisiauto_sininen', '/grafiikka/ajoneuvot/poliisiauto.png'));
+  p.push(loadImg('poliisiauto_sininen_kavely', '/grafiikka/ajoneuvot/poliisiauto_kavely.png'));
+  for (const f of ['suuliekki_8', 'makkara_8', 'molotovi_16', 'zzz_16', 'rajahdys_64', 'tuli_32', 'sade_64', 'kary_32', 'kirppis_tolkkikasa_32', 'sauna_32', 'kesajuhlat_32',
+    'laatta_latta_1', 'laatta_latta_2', 'laatta_latta_3', 'laatta_hoyry']) p.push(loadImg('fx_' + f, `/grafiikka/efektit/${f}.png`));
+  p.push(loadImg('alko', '/grafiikka/rakennukset/alko.png'));
+  for (const f of ['tapahtuma_banneri', 'tapahtuma_karttamerkki', 'puoli_sininen', 'puoli_punainen', 'puoli_molemmat']) p.push(loadImg('ui_' + f, `/grafiikka/ui/${f}.png`));
+  p.push(loadImg('kartta_tausta', '/grafiikka/kartta/kartta_tausta.png'));
+  p.push(loadImg('minikartta', '/grafiikka/kartta/minikartta_256.png'));
+  for (const k of Object.keys(map.tapahtumat)) p.push(loadImg('tap_' + k, `/grafiikka/ikonit/tapahtuma_${k}.png`));
   p.push(loadImg('paamaja_sininen', '/grafiikka/rakennukset/paamaja_sininen.png'));
   p.push(loadImg('paamaja_punainen', '/grafiikka/rakennukset/paamaja_punainen.png'));
   p.push(loadImg('kmarket', '/grafiikka/rakennukset/kmarket.png'));
@@ -49,16 +93,35 @@ function snd(name, vol = 0.6, minGap = 60) {
   const a = SND[name].cloneNode(); a.volume = vol; a.play().catch(() => {});
 }
 function voice(type, key) {
-  const opts = { tolkkijussi: { valittu: ['valittu'], kuittaus: ['kuittaus_1', 'kuittaus_2', 'kuittaus_3'], hyokkays: ['kuittaus_1'], baariin: ['baariin'] },
-    lahiojermu: { valittu: ['valittu'], kuittaus: ['kuittaus_1', 'kuittaus_2'], hyokkays: ['hyokkays'], kanni: ['kanni'], baariin: ['baariin'] },
-    mopopoika: { valittu: ['valittu'], kuittaus: ['kuittaus_1', 'kuittaus_2'], hyokkays: ['hyokkays'], baariin: ['baariin'] } }[type];
-  const list = opts && opts[key]; if (!list) return;
+  const av = VOICES[type]; if (!av) return;
+  let list = av.filter(k => k === key || (key === 'kuittaus' && k.startsWith('kuittaus')));
+  if (!list.length && key === 'hyokkays') list = av.filter(k => k.startsWith('kuittaus'));
+  if (!list.length) return;
   snd(`aani_${type}_${list[Math.floor(Math.random() * list.length)]}`, 0.9, 700);
 }
-function startMusic() { if (music || muted) return; music = new Audio(`/aanet/musiikki_taistelu.${audioExt}`); music.loop = true; music.volume = 0.4; music.play().catch(() => { music = null; }); }
-function toggleMute() { muted = !muted; if (muted && music) { music.pause(); music = null; } else startMusic(); log(muted ? 'Äänet pois.' : 'Äänet päälle.'); }
+let loops = {};
+function loopSnd(name, on, vol = 0.4) {
+  if (on && !muted) { if (!loops[name]) { const a = new Audio(`/aanet/${name}.${audioExt}`); a.loop = true; a.volume = vol; a.play().catch(() => {}); loops[name] = a; } }
+  else if (loops[name]) { loops[name].pause(); delete loops[name]; }
+}
+// Musiikki: soittolista satunnaisessa järjestyksessä, ei samaa kahdesti peräkkäin. Valikossa oma teema.
+const PLAYLIST = ['musiikki_taistelu', 'musiikki_piiritys', 'musiikki_kannirynnakko'];
+let musicVol = +(localStorage.getItem('lahiosota_musiikki') ?? 0.4), lastTrack = null, menuMusic = null;
+function nextTrack() { const opts = PLAYLIST.filter(t => t !== lastTrack); lastTrack = opts[Math.floor(Math.random() * opts.length)]; return lastTrack; }
+function startMusic() {
+  if (menuMusic) { menuMusic.pause(); menuMusic = null; }
+  if (music || muted || !ready) return;
+  music = new Audio(`/aanet/${nextTrack()}.${audioExt}`); music.volume = musicVol;
+  music.onended = () => { music = null; startMusic(); };
+  music.play().catch(() => { music = null; });
+}
+function startMenuMusic() { if (menuMusic || muted || ready) return; menuMusic = new Audio(`/aanet/musiikki_valikko.${audioExt}`); menuMusic.loop = true; menuMusic.volume = musicVol; menuMusic.play().catch(() => { menuMusic = null; }); }
+document.addEventListener('click', () => { if (!ready) startMenuMusic(); }, { once: false });
+function setMusicVol(v) { musicVol = v; localStorage.setItem('lahiosota_musiikki', v); if (music) music.volume = v; if (menuMusic) menuMusic.volume = v; }
+function toggleMute() { muted = !muted; if (muted) { for (const k of Object.keys(loops)) loopSnd(k, false); if (music) { music.pause(); music = null; } if (menuMusic) { menuMusic.pause(); menuMusic = null; } } else startMusic(); log(muted ? 'Äänet pois.' : 'Äänet päälle.'); const mb = $('mykistys'); if (mb) mb.textContent = muted ? '🔇' : '🔊'; }
 
 // ---------- tila ----------
+let reconnects = 0, gameOver = false, centeredOnce = false;
 let ws, myTeam = 0, map = null, terrainCanvas = null, started = false, ready = false;
 let prev = null, cur = null, curAt = 0, prevAt = 0;
 const buildingsById = {};
@@ -67,6 +130,9 @@ let cam = { x: 0, y: 0, z: 1 };
 let mouse = { x: 0, y: 0, down: false, sx: 0, sy: 0, inside: false };
 const keys = {};
 const effects = []; // laukausviivat ym.
+const bubbles = [];  // humalakuplat
+const lastBubble = {}, lastBubbleSnd = {}, shootT = {};
+let globalBubbleSnd = 0, molotovMode = false, lastTap = null;
 const floaters = [];
 
 const canvas = $('kentta'), ctx = canvas.getContext('2d');
@@ -91,12 +157,22 @@ function connect() {
     else if (m.t === 'virhe') { alert(m.viesti); }
     else if (m.t === 'chat') log(`${TEAM[m.team].nimi}: ${m.teksti}`);
   };
-  ws.onclose = () => { if (started) show('Yhteys katkesi. Lataa sivu uudelleen jatkaaksesi.'); };
+  ws.onopen = () => { reconnects = 0; };
+  ws.onclose = () => {
+    if (gameOver) return;
+    if (reconnects++ < 8) { if (started) log('Yhteys katkesi, yhdistetään uudelleen…', 'punainen'); setTimeout(connect, 1000 + reconnects * 500); }
+    else if (started) show('Yhteys katkesi. Lataa sivu uudelleen jatkaaksesi.');
+  };
 }
 function sendCmd(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
+if (params.get('harjoitus') === '1') window.__lahiosota = { send: (o) => sendCmd(o), tila: () => cur }; // testikoukku vain harjoituksessa
 
 function onInit(m) {
+  if (started && myTeam && m.team !== myTeam) { log(`Huom: palvelin vaihtoi puolesi: olet nyt ${TEAM[m.team].nimi}.`, 'punainen'); }
   myTeam = m.team; map = m.map;
+  document.body.dataset.team = TEAM[myTeam].vari;
+  $('aulaPuoli').innerHTML = teamBadge();
+  if (started) { $('joukkue').innerHTML = teamBadge(); centerOnHQ(); }
   for (const b of map.buildings) buildingsById[b.id] = b;
   if (!m.solo) {
     $('linkki').hidden = false;
@@ -113,11 +189,22 @@ async function onStart() {
   ready = true;
   $('aula').hidden = true; $('peli').hidden = false;
   buildTerrain(); buildPanel(); resize();
-  const h = map.buildings.find(b => b.tyyppi === 'paamaja' && b.owner === myTeam);
-  centerOn(h.col + 1, h.row + 1);
-  log(`Pelaat: ${TEAM[myTeam].nimi}. Tuhoa vihollisen päämaja!`, TEAM[myTeam].vari);
+  centerOnHQ();
+  showBanner();
+  log(`Pelaat: ${TEAM[myTeam].nimi} (${TEAM[myTeam].varinimi}). Tuhoa vihollisen päämaja!`, TEAM[myTeam].vari);
   log('Vinkki: klikkaa Tölkkijussia ja oikealla tölkkikasaa.');
+  startMusic();
   requestAnimationFrame(frame);
+}
+
+function teamBadge() { const t = TEAM[myTeam]; return `Olet <span class="${t.vari}">${t.nimi.toUpperCase()}</span> <small>(${t.varinimi}, ${t.suunta})</small>`; }
+function myHQ() { return map.buildings.find(b => b.tyyppi === 'paamaja' && b.owner === myTeam); }
+function centerOnHQ() { const h = myHQ(); if (h) centerOn(h.col + 1, h.row + 1.5); }
+function showBanner() {
+  const t = TEAM[myTeam]; const el = $('banneri');
+  el.innerHTML = `OLET <span class="${t.vari}">${t.nimi.toUpperCase()}</span><br><small>${t.varinimi} – päämajasi on ${t.suunta}</small>`;
+  el.className = 'banneri ' + t.vari; el.hidden = false;
+  setTimeout(() => { el.hidden = true; }, 5000);
 }
 
 function onSnap(s) {
@@ -125,6 +212,7 @@ function onSnap(s) {
   cur.um = new Map(s.u.map(u => [u[0], u]));
   for (const id of [...selected]) if (!cur.um.has(id)) selected.delete(id);
   for (const e of s.ev) handleEvent(e);
+  if (ready && !centeredOnce) { centeredOnce = true; centerOnHQ(); }
   if (ready) updatePanel();
 }
 
@@ -132,7 +220,31 @@ function handleEvent(e) {
   const mine = e.owner === myTeam;
   const vis = e.x != null && onScreen(e.x, e.y);
   switch (e.e) {
-    case 'ammus': effects.push({ x: e.x, y: e.y, tx: e.tx, ty: e.ty, hit: e.hit, t: 0.12, c: e.owner === 1 ? '#9cf' : '#f99' }); if (vis) snd('sfx_laukaus_' + e.w, 0.25, 90); break;
+    case 'ammus':
+      shootT[e.id] = performance.now();
+      if (e.roiske) effects.push({ arc: true, x: e.x, y: e.y, tx: e.tx, ty: e.ty, t: 0.8, t0: 0.8, img: 'fx_makkara_8' });
+      else if (e.w === 'grilli') effects.push({ arc: true, x: e.x, y: e.y, tx: e.tx, ty: e.ty, t: 0.35, t0: 0.35, img: 'fx_makkara_8', kary: true });
+      else if (!e.lahi) effects.push({ x: e.x, y: e.y, tx: e.tx, ty: e.ty, hit: e.hit, t: 0.12, c: e.owner === 1 ? '#9cf' : '#f99', flash: true });
+      if (vis) snd(WEAPON_SFX[e.w] || 'sfx_laukaus_rk62', e.w === 'parveke' ? 0.5 : 0.25, 90); break;
+    case 'rajahdys': effects.push({ boom: true, x: e.x, y: e.y, t: 0.6, t0: 0.6, small: e.pieni }); break;
+    case 'molotovi':
+      effects.push({ arc: true, x: e.x, y: e.y, tx: e.tx, ty: e.ty, t: 0.5, t0: 0.5, img: 'fx_molotovi_16', spin: true });
+      if (vis || mine) setTimeout(() => snd(e.syttyi ? 'sfx_molotovi' : 'sfx_molotovi_sammuu', 0.7, 100), 350);
+      if (mine && !e.syttyi) log('Molotovi ei syttynyt sateessa!');
+      if (e.oma) { bubble(e.id, 'omiin', e.x, e.y, true); if (mine) log('Kännissä pudotti molotovin omiin jalkoihin!', 'punainen'); }
+      break;
+    case 'eirahaa': if (mine) log('Ei rahaa molotoviin (kalja maksaa)!'); break;
+    case 'jyrays': if (vis) snd('sfx_ajoneuvo_tormays', 0.6, 300); break;
+    case 'kyytiin': if (mine) log(`${map.unitTypes[e.type] ? map.unitTypes[e.type].nimi : 'Ajoneuvo'}: yksikkö nousi kyytiin.`); break;
+    case 'taynna': if (mine) log('Kyyti on täynnä!'); break;
+    case 'purku': if (mine) log(`${e.n} yksikköä nousi kyydistä.`); break;
+    case 'putkaan': bubble(e.id, 'putkaan', e.x, e.y, mine || vis); if (mine) log(`Poliisi vei ${map.unitTypes[e.type].nimi.toLowerCase()}n putkaan!`, 'punainen'); break;
+    case 'humala': bubble(e.id, String(e.tila), e.x, e.y, mine || vis);
+      if (e.tila === 'laatta' && (mine || vis)) setTimeout(() => snd('sfx_laatta_latsahdys', 0.6, 200), 700); break;
+    case 'palasi': if (mine) log(e.sauna ? 'Saunojat palasivat terästettyinä (+30 % vahinko)!' : 'Kokous loppui, joukot palasivat.'); break;
+    case 'tapahtuma': onTapahtuma(e); break;
+    case 'tapahtuma_loppui': snd('sfx_tapahtuma_loppui', 0.6, 100); log(`Tapahtuma päättyi: ${e.nimi}.`, 'tapahtuma'); break;
+    case 'tapahtuma_varoitus': onVaroitus(e); break;
     case 'kilina': if (mine && vis) snd('sfx_tolkki_kilina', 0.35, 250); break;
     case 'pantti': if (mine) { snd('sfx_tolkki_kilina', 0.6); floaters.push({ x: e.x, y: e.y - 1, t: 1.5, txt: `+${Math.round(e.raha)} €`, c: '#e8c33a' }); } break;
     case 'valtaus': {
@@ -142,16 +254,55 @@ function handleEvent(e) {
       else log(`${TEAM[e.owner].nimi} valtasi: ${b.nimi}`);
       break;
     }
-    case 'kuoli': if (vis) snd('sfx_kuolema', 0.5, 150); if (vis) floaters.push({ x: e.x, y: e.y, t: 1, txt: '✝', c: '#fff' }); if (mine) log(`${map.unitTypes[e.type].nimi} kaatui.`); break;
-    case 'kotiin': if (mine) { voice('lahiojermu', 'kanni'); log(`${map.unitTypes[e.type].nimi}: "Mää lähen kotiin..." (liian kännissä)`, 'punainen'); } if (vis) floaters.push({ x: e.x, y: e.y, t: 2, txt: 'lähti kotiin', c: '#ff0' }); break;
-    case 'sammui': if (vis || mine) snd('sfx_sammui', 0.7, 500); if (mine) log('Yksikkö sammui! (kännimittari täynnä)'); if (vis) floaters.push({ x: e.x, y: e.y, t: 2, txt: 'Zzz', c: '#ff0' }); break;
-    case 'omiin': if (mine) log('Kännissä ampui omiaan!', 'punainen'); break;
-    case 'baariin': if (mine) { const bu = cur && cur.um.get(e.id); voice(bu ? bu[1] : 'lahiojermu', 'baariin'); } if (mine) log('Yksikkö lähti baariin!'); if (vis) floaters.push({ x: e.x, y: e.y, t: 2, txt: 'baariin!', c: '#fc6' }); break;
+    case 'kuoli': if (e.ajoneuvo) { effects.push({ boom: true, x: e.x, y: e.y, t: 0.6, t0: 0.6 }); if (vis) snd('sfx_rakennus_tuhoutui', 0.6, 200); } if (vis) snd('sfx_kuolema', 0.5, 150); if (vis) floaters.push({ x: e.x, y: e.y, t: 1, txt: '✝', c: '#fff' }); if (mine) log(`${map.unitTypes[e.type].nimi} kaatui.`); break;
+    case 'kotiin': bubble(e.id, 'kotiin', e.x, e.y, false); if (mine) { voice('lahiojermu', 'kanni'); log(`${map.unitTypes[e.type].nimi}: "Mää lähen kotiin..." (liian kännissä)`, 'punainen'); } break;
+    case 'sammui': bubble(e.id, 'sammui', e.x, e.y, mine || vis); if (mine) log('Yksikkö sammui! (kännimittari täynnä)'); break;
+    case 'omiin': bubble(e.id, 'omiin', e.x, e.y, mine || vis); if (mine) log('Kännissä ampui omiaan!', 'punainen'); break;
+    case 'baariin': bubble(e.id, 'baariin', e.x, e.y, mine || vis); if (mine) log('Yksikkö lähti baariin!'); break;
     case 'valmis': if (mine) { snd('sfx_koulutus_valmis', 0.6); voice(e.type, 'valittu'); log(`${map.unitTypes[e.type].nimi} valmis.`); } break;
     case 'tuhoutui': snd('sfx_rakennus_tuhoutui', 0.9); break;
-    case 'voitto': show(e.winner === myTeam ? 'VOITTO!<br><small>Vihollisen päämaja on tuhottu.</small>' : 'TAPPIO<br><small>Päämajasi tuhottiin.</small>'); break;
+    case 'voitto': gameOver = true; show(e.winner === myTeam ? 'VOITTO!<br><small>Vihollisen päämaja on tuhottu.</small>' : 'TAPPIO<br><small>Päämajasi tuhottiin.</small>'); break;
   }
 }
+function bubble(id, tila, x, y, withSound) {
+  const def = KUPLAT[tila]; if (!def) return;
+  const now = performance.now();
+  if (!PAKKO[tila] && lastBubble[id] && now - lastBubble[id] < 8000) return;
+  if (!onScreen(x, y) && !PAKKO[tila]) return;
+  if (bubbles.length >= 6) { if (!PAKKO[tila]) return; bubbles.shift(); }
+  for (let i = bubbles.length - 1; i >= 0; i--) if (bubbles[i].id === id) bubbles.splice(i, 1);
+  lastBubble[id] = now;
+  const txt = def[0][Math.floor(Math.random() * def[0].length)];
+  bubbles.push({ id, x, y, txt, t: 2.6, t0: 2.6 });
+  if (withSound && onScreen(x, y) && (!lastBubbleSnd[id] || now - lastBubbleSnd[id] > 8000) && now - globalBubbleSnd > 1200) {
+    lastBubbleSnd[id] = now; globalBubbleSnd = now;
+    snd(def[1][Math.floor(Math.random() * def[1].length)], 0.7, 300);
+  }
+}
+function koskeeTxt(k) {
+  if (!k) return 'Koskee molempia puolia';
+  const t = TEAM[k]; return `Koskee: ${t.nimi} (${t.varinimi})` + (k === myTeam ? ' – SINUA' : ' – vastustajaa');
+}
+function lippu(k) { const im = IMG['ui_puoli_' + (k === 1 ? 'sininen' : k === 2 ? 'punainen' : 'molemmat')]; return im ? `<img class="lippu" src="${im.src}">` : ''; }
+function onTapahtuma(e) {
+  snd('sfx_tapahtuma_jingle', 0.8, 100);
+  setTimeout(() => snd('aani_tapahtuma_' + e.key, 0.95, 100), 1500);
+  if (e.key === 'poliisipartio') setTimeout(() => snd('sfx_poliisi_sireeni', 0.6, 100), 3500);
+  log(`TAPAHTUMA: ${e.nimi}. ${e.teksti} (${koskeeTxt(e.koskee)})`, 'tapahtuma');
+  const el = $('tapahtumaBanneri');
+  const ic = IMG['tap_' + e.key], bg = IMG.ui_tapahtuma_banneri;
+  el.className = bg ? 'kuvalla' : '';
+  el.style.backgroundImage = bg ? `url(${bg.src})` : '';
+  el.innerHTML = (ic ? `<img class="ikoni" src="${ic.src}">` : '') + `<div class="teksti"><b>${e.nimi.toUpperCase()}!</b> <small>${e.kesto} s</small><br>${e.teksti}<br><small>${lippu(e.koskee)} ${koskeeTxt(e.koskee)}</small></div>`;
+  el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 6000);
+}
+function onVaroitus(e) {
+  snd('sfx_tapahtuma_varoitus', 0.7, 100);
+  log(`Varoitus (${e.sekunnit} s): ${e.teksti}`, 'tapahtuma');
+  const el = $('varoitus'); el.innerHTML = `${lippu(e.koskee)} ${e.teksti} <small>(${e.sekunnit} s)</small>`; el.hidden = false;
+  clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 4500);
+}
+
 function show(html) { const i = $('ilmoitus'); i.innerHTML = html + '<br><button onclick="location.href=\'/\'">Uusi peli</button>'; i.hidden = false; }
 
 // ---------- maasto ----------
@@ -159,6 +310,8 @@ function buildTerrain() {
   terrainCanvas = document.createElement('canvas');
   terrainCanvas.width = map.cols * TS; terrainCanvas.height = map.rows * TS;
   const t = terrainCanvas.getContext('2d');
+  // yhtenäinen maalattu taustakuva (32 px / ruutu); ruudukko jää vain liikkumisdataksi
+  if (IMG.kartta_tausta) { t.imageSmoothingEnabled = false; t.drawImage(IMG.kartta_tausta, 0, 0, map.cols * TS, map.rows * TS); return; }
   for (let r = 0; r < map.rows; r++) for (let c = 0; c < map.cols; c++) {
     const id = map.terrain[r][c]; const im = IMG['t' + id];
     if (im) t.drawImage(im, c * TS, r * TS, TS, TS); else { t.fillStyle = MINI_COLORS[id]; t.fillRect(c * TS, r * TS, TS, TS); }
@@ -167,23 +320,47 @@ function buildTerrain() {
 
 // ---------- paneeli ----------
 function buildPanel() {
-  $('joukkue').innerHTML = `<span class="${TEAM[myTeam].vari}">${TEAM[myTeam].nimi}</span>`;
+  $('joukkue').innerHTML = teamBadge();
+  TRAIN_KEYS = {};
   const k = $('koulutus'); k.innerHTML = '';
-  for (const [key, type] of Object.entries(TRAIN_KEYS)) {
-    const t = map.unitTypes[type];
-    const b = document.createElement('button'); b.id = 'kouluta_' + type;
-    b.textContent = `[${key.toUpperCase()}] ${t.nimi} – ${t.hinta} €`;
-    b.title = t.ase ? `${t.ase.nimi}, HP ${t.hp}` : `Kerää tölkkejä (kantaa ${t.kantaa}), HP ${t.hp}`;
+  for (const [type, t] of Object.entries(map.unitTypes)) {
+    if (t.puoli && t.puoli !== myTeam) continue;
+    TRAIN_KEYS[t.nappi] = type;
+    const b = document.createElement('button'); b.id = 'kouluta_' + type; b.className = 'koulutusnappi';
+    const ic = IMG['ui_' + type + '_' + TEAM[myTeam].vari];
+    b.innerHTML = (ic ? `<img src="${ic.src}">` : '') + `<span>[${t.nappi.toUpperCase()}] ${t.nimi}</span><span class="hinta" id="hinta_${type}">${t.hinta} €</span>`;
+    b.title = (t.kuvaus ? t.kuvaus + ' ' : '') + (t.ase ? `Ase: ${t.ase.nimi}. ` : '') + `HP ${t.hp}` + (t.kantaa ? `, kantaa ${t.kantaa} tölkkiä` : '') + (t.kyyti ? `, kyytiin ${t.kyyti}` : '');
     b.onclick = () => { sendCmd({ t: 'train', type }); snd('sfx_ui_klikkaus', 0.5); };
     k.appendChild(b);
   }
+  const vs = $('voimakkuus'); vs.value = Math.round(musicVol * 100); vs.oninput = () => setMusicVol(vs.value / 100);
+  $('mykistys').onclick = () => toggleMute();
+  const ab = $('kyvyt'); ab.innerHTML = '';
+  const mb = document.createElement('button'); mb.id = 'molotoviNappi'; mb.textContent = '[V] Molotovi'; mb.title = 'Valitse jermuja, mopoja tai isiä, paina V ja klikkaa kohdetta. Maksaa kaljaa (rahaa). Sateessa ei syty.';
+  mb.onclick = () => startMolotov(); ab.appendChild(mb);
+  const ub = document.createElement('button'); ub.id = 'purkuNappi'; ub.textContent = '[U] Pura kyyti'; ub.title = 'Volvo / Lada: kyytiläiset ulos. Kyytiin pääsee oikealla klikkauksella omaan ajoneuvoon.';
+  ub.onclick = () => sendCmd({ t: 'unload', ids: [...selected] }); ab.appendChild(ub);
+}
+function startMolotov() {
+  const ok = [...selected].some(id => { const u = cur.um.get(id); return u && map.unitTypes[u[1]].molotovi; });
+  if (!ok) { log('Valitse ensin Lähiöjermu, Mopopoika tai Isä.'); return; }
+  molotovMode = true; canvas.style.cursor = 'cell'; log('Molotovi: klikkaa kohdetta (Esc peruu).');
 }
 let lastPanel = 0;
 function updatePanel() {
   const now = performance.now(); if (now - lastPanel < 150) return; lastPanel = now;
   const p = cur.p[myTeam];
   $('raha').textContent = `Pantit: ${p.money} €`;
-  for (const type of Object.values(TRAIN_KEYS)) $('kouluta_' + type).disabled = p.money < map.unitTypes[type].hinta || p.queue.length >= 5;
+  const hinnat = cur.hinnat ? cur.hinnat[myTeam] : {};
+  for (const type of Object.values(TRAIN_KEYS)) { const h = hinnat[type] || map.unitTypes[type].hinta; $('kouluta_' + type).disabled = p.money < h || p.queue.length >= 5; $('hinta_' + type).textContent = h + ' €'; }
+  const selU = [...selected].map(id => cur.um.get(id)).filter(Boolean);
+  $('molotoviNappi').hidden = !selU.some(u => map.unitTypes[u[1]].molotovi);
+  $('molotoviNappi').textContent = `[V] Molotovi (${cur.molo ? cur.molo[myTeam] : 15} €)`;
+  $('purkuNappi').hidden = !selU.some(u => u[10] > 0);
+  const tp = $('tapahtumaTila');
+  if (cur.tap) { const ic = IMG['tap_' + cur.tap.key];
+    tp.innerHTML = `<div class="aktiivinen">${ic ? `<img src="${ic.src}">` : ''}<div><b>${cur.tap.nimi}</b> ${lippu(cur.tap.koskee)}<br><span class="laskuri">${cur.tap.left} s</span></div></div>`; }
+  else tp.innerHTML = cur.nextTap != null && cur.nextTap <= 5 ? '<small>Jotain on tulossa...</small>' : '';
   $('jono').textContent = p.queue.length ? 'Koulutus: ' + p.queue.map((q, i) => i === 0 ? `${map.unitTypes[q[0]].nimi} ${Math.ceil(q[1])}s` : map.unitTypes[q[0]].nimi).join(', ') : '';
   const v = $('valinta');
   if (selected.size) {
@@ -192,7 +369,7 @@ function updatePanel() {
       const u = us[0], t = map.unitTypes[u[1]];
       v.innerHTML = `<b>${t.nimi}</b> <small>(${STATE_FI[u[8]] || u[8]})</small><br>HP ${u[5]}/${t.hp}<div class="mittari"><div style="width:${u[5] / t.hp * 100}%;background:#4c4"></div></div>` +
         `Kännimittari ${u[6]} %<div class="mittari"><div style="width:${u[6]}%;background:${kColor(u[6])}"></div></div>` +
-        `<small>${kText(u[6])}</small>` + (t.kantaa ? `<br>Tölkkejä: ${u[7]}/${t.kantaa}` : '') + (t.ase ? `<br><small>Ase: ${t.ase.nimi}</small>` : '');
+        `<small>${kText(u[6])}</small>` + (t.kantaa ? `<br>Tölkkejä: ${u[7]}/${t.kantaa}` : '') + (t.kyyti ? `<br>Kyydissä: ${u[10]}/${t.kyyti}` : '') + (t.ase ? `<br><small>Ase: ${t.ase.nimi}</small>` : '') + (u[11] & 2 ? '<br><small>Terästetty (+30 %)</small>' : '') + (u[11] & 1 ? '<br><small>Hidastettu</small>' : '');
     } else {
       const cnt = {}; us.forEach(u => cnt[u[1]] = (cnt[u[1]] || 0) + 1);
       const avgK = Math.round(us.reduce((a, u) => a + u[6], 0) / us.length);
@@ -212,7 +389,8 @@ function kText(k) { return k < 20 ? 'Selvä.' : k < 60 ? 'Pieni hiprakka: +25 % 
 function viewW() { return canvas.width; } function viewH() { return canvas.height; }
 function resize() { canvas.width = window.innerWidth - PANEL; canvas.height = window.innerHeight; ctx.imageSmoothingEnabled = false; clampCam(); }
 window.addEventListener('resize', () => started && resize());
-function clampCam() { if (!map) return; const ww = map.cols * TS * cam.z, wh = map.rows * TS * cam.z; cam.x = Math.max(0, Math.min(cam.x, ww - viewW())); cam.y = Math.max(0, Math.min(cam.y, wh - viewH())); }
+function minZoom() { return map ? Math.max(1, viewW() / (map.cols * TS), viewH() / (map.rows * TS)) : 1; }
+function clampCam() { if (!map) return; if (cam.z < minZoom()) cam.z = minZoom(); const ww = map.cols * TS * cam.z, wh = map.rows * TS * cam.z; cam.x = Math.max(0, Math.min(cam.x, ww - viewW())); cam.y = Math.max(0, Math.min(cam.y, wh - viewH())); }
 function centerOn(tx, ty) { cam.x = tx * TS * cam.z - viewW() / 2; cam.y = ty * TS * cam.z - viewH() / 2; clampCam(); }
 function toWorld(sx, sy) { return [(sx + cam.x) / (TS * cam.z), (sy + cam.y) / (TS * cam.z)]; }
 function toScreen(tx, ty) { return [tx * TS * cam.z - cam.x, ty * TS * cam.z - cam.y]; }
@@ -224,6 +402,12 @@ canvas.addEventListener('mousemove', e => { mouse.x = e.offsetX; mouse.y = e.off
 canvas.addEventListener('mouseleave', () => { mouse.inside = false; });
 canvas.addEventListener('mousedown', e => {
   startMusic();
+  if (molotovMode) {
+    const [x, y] = toWorld(e.offsetX, e.offsetY);
+    if (e.button === 0 || e.button === 2) { sendCmd({ t: 'molotovi', ids: [...selected], x, y }); effects.push({ mark: true, x, y, t: 0.5, c: '#fa0' });
+      const f = cur.um.get([...selected][0]); if (f) voice(f[1], 'hyokkays'); }
+    molotovMode = false; canvas.style.cursor = 'crosshair'; return;
+  }
   if (e.button === 0) { mouse.down = true; mouse.sx = e.offsetX; mouse.sy = e.offsetY; }
   if (e.button === 2) rightClick(e.offsetX, e.offsetY);
 });
@@ -249,7 +433,7 @@ window.addEventListener('mouseup', e => {
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
   const [wx, wy] = toWorld(e.offsetX, e.offsetY);
-  const zs = [1, 1.5, 2]; let i = zs.indexOf(cam.z); i = Math.max(0, Math.min(zs.length - 1, i + (e.deltaY < 0 ? 1 : -1))); cam.z = zs[i];
+  const zs = [1, 1.5, 2, 3].filter(z => z >= minZoom()); if (!zs.length || zs[0] > minZoom()) zs.unshift(minZoom()); let i = zs.findIndex(z => z >= cam.z - 1e-6); if (i < 0) i = 0; i = Math.max(0, Math.min(zs.length - 1, i + (e.deltaY < 0 ? 1 : -1))); cam.z = zs[i];
   cam.x = wx * TS * cam.z - e.offsetX; cam.y = wy * TS * cam.z - e.offsetY; clampCam(); ctx.imageSmoothingEnabled = false;
 }, { passive: false });
 mini.addEventListener('mousedown', e => { const f = map.cols / mini.width; centerOn(e.offsetX * f, e.offsetY * f); });
@@ -260,8 +444,11 @@ window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase(); keys[k] = true;
   if (TRAIN_KEYS[k]) { sendCmd({ t: 'train', type: TRAIN_KEYS[k] }); snd('sfx_ui_klikkaus', 0.5); }
   if (k === 'h') sendCmd({ t: 'stop', ids: [...selected] });
+  if (k === 'v') startMolotov();
+  if (k === 'u') sendCmd({ t: 'unload', ids: [...selected] });
+  if (k === 'escape') { molotovMode = false; canvas.style.cursor = 'crosshair'; }
   if (k === 'm') toggleMute();
-  if (k === ' ') { e.preventDefault(); const h = map.buildings.find(b => b.tyyppi === 'paamaja' && b.owner === myTeam); if (h) centerOn(h.col + 1, h.row + 1); }
+  if (k === ' ') { e.preventDefault(); centerOnHQ(); }
   if (/^[1-9]$/.test(k)) {
     if (e.ctrlKey) { e.preventDefault(); groups[k] = new Set(selected); log(`Ryhmä ${k} tallennettu.`); }
     else if (groups[k]) { selected = new Set([...groups[k]].filter(id => cur.um.has(id))); selBuilding = null; }
@@ -285,7 +472,7 @@ function order(x, y) {
   const enemy = unitAt(x, y, false); const b = buildingAt(x, y);
   const attack = (enemy && enemy[2] !== myTeam) || (b && b.tyyppi === 'paamaja' && cur.b.find(s => s[0] === b.id)[1] !== myTeam);
   const first = cur.um.get(ids[0]);
-  if (first) { voice(first[1], attack ? 'hyokkays' : 'kuittaus'); if (first[1] === 'mopopoika') snd('sfx_mopo', 0.4, 1500); }
+  if (first) { voice(first[1], attack ? 'hyokkays' : 'kuittaus'); if (MOVE_SFX[first[1]]) snd(MOVE_SFX[first[1]], 0.4, 1500); }
   sendCmd({ t: 'order', ids, x, y: enemy && enemy[2] !== myTeam ? lerpPos(enemy)[1] : y });
   effects.push({ mark: true, x, y, t: 0.5, c: attack ? '#f44' : '#4f4' });
 }
@@ -318,10 +505,53 @@ function draw(dt) {
   ctx.drawImage(terrainCanvas, cam.x / z, cam.y / z, viewW() / z, viewH() / z, 0, 0, viewW(), viewH());
   if (!cur) return;
 
+  const nowMs = performance.now();
+  // laattalätät
+  for (const l of cur.l || []) {
+    if (!onScreen(l[0], l[1])) continue;
+    const [x, y] = toScreen(l[0], l[1]);
+    const ph = l[3] > 0.66 ? 1 : l[3] > 0.33 ? 2 : 3; const im = IMG['fx_laatta_latta_' + ph];
+    const sz = l[2] * 2 * TS * z * Math.max(0.5, l[3]);
+    ctx.globalAlpha = Math.min(1, 0.4 + l[3]);
+    if (im) ctx.drawImage(im, x - sz / 2, y - sz / 2, sz, sz); else { ctx.fillStyle = '#9a3'; ctx.beginPath(); ctx.ellipse(x, y, sz / 2, sz / 3, 0, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    const st = IMG.fx_laatta_hoyry; if (st) { const fw = st.height, fr = Math.floor(nowMs / 200) % Math.max(1, Math.floor(st.width / fw)); ctx.drawImage(st, fr * fw, 0, fw, fw, x - fw * z / 2, y - fw * z, fw * z, fw * z); }
+  }
+  loopSnd('sfx_laatta_karpaset_loop', (cur.l || []).some(l => onScreen(l[0], l[1])), 0.2);
+  // tuli (molotovit)
+  for (const f of cur.f || []) {
+    if (!onScreen(f[0], f[1])) continue;
+    const im = IMG.fx_tuli_32;
+    for (let i = 0; i < 5; i++) {
+      const a = i * 1.3, rr = i ? f[2] * 0.6 : 0; const [x, y] = toScreen(f[0] + Math.cos(a) * rr, f[1] + Math.sin(a) * rr * 0.7);
+      if (im) { const fr = (Math.floor(nowMs / 120) + i) % 4; ctx.drawImage(im, fr * 32, 0, 32, 32, x - 16 * z, y - 28 * z, 32 * z, 32 * z); }
+      else { ctx.fillStyle = '#f60'; ctx.fillRect(x - 5, y - 10, 10, 10); }
+    }
+  }
+  // tapahtumaobjektit: Alko, sauna, kesäjuhlat
+  if (cur.tap && cur.tap.alko && IMG.alko) { const [x, y] = toScreen(cur.tap.alko[0] - 1, cur.tap.alko[1] - 2.2); ctx.drawImage(IMG.alko, x, y, 2 * S, 2 * S); }
+  if (cur.away && cur.away.length) for (const team of [1, 2]) {
+    const n = cur.away.filter(a => a[0] === team).length; if (!n) continue;
+    const h = map.buildings.find(b => b.tyyppi === 'paamaja' && b.owner === team); const im = cur.away.find(a => a[0] === team)[1] ? IMG.fx_sauna_32 : null;
+    const [x, y] = toScreen(h.col + 2.2, h.row + 0.5);
+    if (im) ctx.drawImage(im, x, y, 32 * z, 32 * z);
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${10 * z}px monospace`; ctx.fillText((im ? 'saunassa ' : 'kokouksessa ') + n, x, y);
+  }
+  if (cur.tap && cur.tap.key === 'kesajuhlat' && IMG.fx_kesajuhlat_32) for (const b of map.buildings.filter(b => b.tyyppi === 'paamaja')) { const [x, y] = toScreen(b.col - 1, b.row + 1); ctx.drawImage(IMG.fx_kesajuhlat_32, x, y, 32 * z, 32 * z); }
+
+  // tapahtumapaikkojen merkit
+  if (cur.tap && cur.tap.paikat) for (const pk of cur.tap.paikat) {
+    if (!onScreen(pk[0], pk[1])) continue; const [x, y] = toScreen(pk[0], pk[1]); const im = IMG.ui_tapahtuma_karttamerkki;
+    const yy = y - (cur.tap.key === 'poliisipartio' ? 28 : 20) * z;
+    if (im) { const fr = Math.floor(nowMs / 150) % 4; ctx.drawImage(im, fr * 16, 0, 16, 16, x - 8 * z, yy - 16 * z, 16 * z, 16 * z); }
+    else { ctx.fillStyle = '#fc0'; ctx.fillText('!', x, yy); }
+  }
+
   // tölkit
   for (const c of cur.c) {
     if (!onScreen(c[1], c[2])) continue;
     const [x, y] = toScreen(c[1], c[2]);
+    if (c[3] >= 10 && IMG.fx_kirppis_tolkkikasa_32) { ctx.drawImage(IMG.fx_kirppis_tolkkikasa_32, x - 16 * z, y - 24 * z, 32 * z, 32 * z); ctx.fillStyle = '#fff'; ctx.font = `${10 * z}px monospace`; ctx.fillText(c[3], x + 10 * z, y + 8 * z); continue; }
     const n = Math.min(3, Math.ceil(c[3] / 3));
     for (let i = 0; i < n; i++) { if (IMG.tolkki) ctx.drawImage(IMG.tolkki, x - 8 * z + (i - 1) * 5 * z, y - 8 * z - (i % 2) * 3 * z, 16 * z, 16 * z); else { ctx.fillStyle = '#ccc'; ctx.fillRect(x - 3, y - 3, 6, 6); } }
     ctx.fillStyle = '#fff'; ctx.font = `${10 * z}px monospace`; ctx.fillText(c[3], x + 8 * z, y + 8 * z);
@@ -337,9 +567,16 @@ function draw(dt) {
   // efektit
   for (let i = effects.length - 1; i >= 0; i--) {
     const e = effects[i]; e.t -= dt; if (e.t <= 0) { effects.splice(i, 1); continue; }
+    if (e.boom) { const im = IMG.fx_rajahdys_64; const fr = Math.min(5, Math.floor((1 - e.t / e.t0) * 6)); const [x, y] = toScreen(e.x, e.y); const sz = (e.small ? 40 : 64) * z;
+      if (im) ctx.drawImage(im, fr * 64, 0, 64, 64, x - sz / 2, y - sz * 0.7, sz, sz); else { ctx.fillStyle = '#fa0'; ctx.beginPath(); ctx.arc(x, y, sz / 3, 0, 7); ctx.fill(); } continue; }
+    if (e.arc) { const a = 1 - e.t / e.t0; const px = e.x + (e.tx - e.x) * a, py = e.y + (e.ty - e.y) * a - Math.sin(a * Math.PI) * 1.5; const [x, y] = toScreen(px, py); const im = IMG[e.img];
+      if (im) { ctx.save(); ctx.translate(x, y); if (e.spin) ctx.rotate(a * 12); ctx.drawImage(im, -im.width * z / 2, -im.height * z / 2, im.width * z, im.height * z); ctx.restore(); } else { ctx.fillStyle = '#c84'; ctx.fillRect(x - 3, y - 3, 6, 6); }
+      if (e.kary && IMG.fx_kary_32 && a > 0.8) { const [kx, ky] = toScreen(e.tx, e.ty); ctx.globalAlpha = 0.6; ctx.drawImage(IMG.fx_kary_32, kx - 16 * z, ky - 24 * z, 32 * z, 32 * z); ctx.globalAlpha = 1; }
+      continue; }
     if (e.mark) { const [x, y] = toScreen(e.x, e.y); ctx.strokeStyle = e.c; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, (1 - e.t * 2) * 10 * z + 3, 0, 7); ctx.stroke(); continue; }
     const [x1, y1] = toScreen(e.x, e.y - 0.35), [x2, y2] = toScreen(e.tx + (e.hit ? 0 : 0.4), e.ty - 0.3 + (e.hit ? 0 : 0.3));
     ctx.strokeStyle = e.c; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    if (e.flash && IMG.fx_suuliekki_8) { ctx.save(); ctx.translate(x1, y1); ctx.rotate(Math.atan2(y2 - y1, x2 - x1)); ctx.drawImage(IMG.fx_suuliekki_8, 0, -4 * z, 8 * z, 8 * z); ctx.restore(); }
   }
   ctx.font = `bold ${12 * z}px monospace`; ctx.textAlign = 'center';
   for (let i = floaters.length - 1; i >= 0; i--) {
@@ -348,6 +585,31 @@ function draw(dt) {
   }
   ctx.textAlign = 'left';
 
+  // sade
+  const rainOn = cur.tap && cur.tap.key === 'sadekuuro';
+  loopSnd('sfx_sade_loop', rainOn, 0.35);
+  if (rainOn) {
+    const im = IMG.fx_sade_64, off = (nowMs / 4) % 64;
+    ctx.fillStyle = 'rgba(20,30,60,.25)'; ctx.fillRect(0, 0, viewW(), viewH());
+    if (im) for (let yy = -64 + off; yy < viewH(); yy += 64) for (let xx = -64 + off / 3; xx < viewW(); xx += 64) ctx.drawImage(im, xx, yy);
+  }
+  // humalakuplat
+  ctx.font = `bold ${Math.round(11 * Math.min(z, 1.5))}px "Courier New", monospace`;
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i]; b.t -= dt; if (b.t <= 0) { bubbles.splice(i, 1); continue; }
+    const u = cur.um.get(b.id); if (u) { const p = lerpPos(u); b.x = p[0]; b.y = p[1]; }
+    const [x, y0] = toScreen(b.x, b.y); const y = y0 - 34 * z - (1 - b.t / b.t0) * 6;
+    const w = ctx.measureText(b.txt).width + 10, hgt = 16;
+    ctx.globalAlpha = Math.min(1, b.t * 2);
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.rect(Math.round(x - w / 2), Math.round(y - hgt), Math.round(w), hgt); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x, y + 6); ctx.lineTo(x + 4, y); ctx.fill();
+    ctx.fillStyle = '#000'; ctx.textAlign = 'center'; ctx.fillText(b.txt, x, y - 4); ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+  // pysyvä joukkuetarra
+  { const t = TEAM[myTeam]; const txt = `${t.nimi.toUpperCase()} (${t.varinimi})`; ctx.font = 'bold 14px monospace'; const w = ctx.measureText(txt).width + 16;
+    ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(8, 8, w, 24); ctx.fillStyle = t.css; ctx.fillRect(8, 8, 5, 24); ctx.fillStyle = '#fff'; ctx.fillText(txt, 18, 25); }
   // valintalaatikko
   if (mouse.down) { ctx.strokeStyle = '#4f4'; ctx.lineWidth = 1; ctx.strokeRect(mouse.sx + 0.5, mouse.sy + 0.5, mouse.x - mouse.sx, mouse.y - mouse.sy); }
   drawMini();
@@ -371,6 +633,7 @@ function drawBuilding(b) {
     ctx.fillStyle = '#ffd'; ctx.font = `bold ${7 * z}px monospace`; ctx.textAlign = 'center';
     ctx.fillText(b.nimi.split(/[- ]/)[0].slice(0, 10), x + S, y + S + 4 * z); ctx.textAlign = 'left';
   }
+  if (s[5]) { ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(x, y + S - 8 * z, 2 * S, 14 * z); ctx.fillStyle = '#f44'; ctx.font = `bold ${9 * z}px monospace`; ctx.fillText('RIKKI', x + 4 * z, y + S + 3 * z); }
   if (selBuilding === b.id) { ctx.strokeStyle = '#fff'; ctx.strokeRect(x - 3, y - 3, 2 * S + 6, 2 * S + 6); }
   // nimi pienellä
   if (z >= 1) { ctx.font = `${9 * z}px monospace`; ctx.fillStyle = '#000'; ctx.fillText(b.nimi, x + 1, y - 4 + 1); ctx.fillStyle = '#fff'; ctx.fillText(b.nimi, x, y - 4); }
@@ -380,29 +643,39 @@ function drawBuilding(b) {
 }
 function bar(x, y, w, f, c) { ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, 4); ctx.fillStyle = c; ctx.fillRect(x, y, w * Math.max(0, f), 4); }
 
+const prevPos = {};
 function drawUnit(u, ux, uy) {
   if (!onScreen(ux, uy)) return;
   const z = cam.z, S = TS * z;
   const [x, y] = toScreen(ux, uy);
   const sel = selected.has(u[0]);
-  if (sel) { ctx.strokeStyle = '#4f4'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(x, y, 9 * z, 4 * z, 0, 0, 7); ctx.stroke(); }
-  const im = IMG[u[1] + '_' + (u[2] === 2 ? 'punainen' : 'sininen')];
-  ctx.save();
-  // ankkuri (0.5, 0.875)
-  const dx = x, dy = y;
-  ctx.translate(dx, dy);
-  if (u[8] === 'sammunut') ctx.rotate(Math.PI / 2);
+  const t = map.unitTypes[u[1]] || { hp: 1, luokka: 'ajoneuvo' };
+  const veh = t.luokka === 'ajoneuvo';
+  if (sel) { ctx.strokeStyle = '#4f4'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(x, y, (veh ? 14 : 9) * z, 4 * z, 0, 0, 7); ctx.stroke(); }
+  const col = u[2] === 2 ? 'punainen' : 'sininen';
+  const key = u[1] + '_' + col;
+  const now = performance.now();
+  const pp = prevPos[u[0]]; const moving = pp && Math.hypot(pp[0] - ux, pp[1] - uy) > 0.002; prevPos[u[0]] = [ux, uy];
+  const shooting = shootT[u[0]] && now - shootT[u[0]] < 250;
+  let im = IMG[key], fr = 0, nfr = 1;
+  if (u[8] === 'sammunut' && IMG[key + '_sammunut']) im = IMG[key + '_sammunut'];
+  else if (shooting && IMG[key + '_ampuu']) { im = IMG[key + '_ampuu']; nfr = 2; fr = Math.floor((now - shootT[u[0]]) / 125) % 2; }
+  else if (moving && IMG[key + '_kavely']) { im = IMG[key + '_kavely']; nfr = 4; fr = Math.floor(now / 150) % 4; }
+  const fw = im ? im.width / nfr : 32, fh = im ? im.height : 32;
+  ctx.save(); ctx.translate(x, y);
+  if (u[8] === 'sammunut' && !IMG[key + '_sammunut']) ctx.rotate(Math.PI / 2);
   if (u[9] < 0) ctx.scale(-1, 1);
-  if (im) ctx.drawImage(im, -S / 2, -S * 0.875, S, S);
-  else { ctx.fillStyle = TEAM[u[2]].css; ctx.fillRect(-6 * z, -20 * z, 12 * z, 18 * z); }
+  if (im) ctx.drawImage(im, fr * fw, 0, fw, fh, -fw * z / 2, -fh * z * 0.875, fw * z, fh * z);
+  else { ctx.fillStyle = TEAM[u[2]].css; ctx.fillRect(-6 * z, -20 * z, 12 * z, 18 * z); ctx.fillStyle = '#fff'; ctx.font = `${8 * z}px monospace`; ctx.fillText(u[1][0].toUpperCase(), -3 * z, -8 * z); }
   ctx.restore();
-  const t = map.unitTypes[u[1]];
+  if (u[2] === 0) return; // poliisi
   const by = y - S * 0.95;
   if (sel || u[5] < t.hp) bar(x - 10 * z, by, 20 * z, u[5] / t.hp, u[2] === myTeam ? '#4c4' : '#e44');
-  // kännimittari omille
   if (u[2] === myTeam) { ctx.fillStyle = '#000'; ctx.fillRect(x - 10 * z, by + 4, 20 * z, 3); ctx.fillStyle = kColor(u[6]); ctx.fillRect(x - 10 * z, by + 4, 20 * z * u[6] / 100, 3); }
   if (u[7] > 0 && IMG.tolkki) { ctx.drawImage(IMG.tolkki, x + 5 * z, y - 14 * z, 10 * z, 10 * z); }
-  if (u[8] === 'sammunut') { ctx.fillStyle = '#ff0'; ctx.font = `${10 * z}px monospace`; ctx.fillText('Zzz', x + 6 * z, y - 18 * z); }
+  if (u[10] > 0) { ctx.fillStyle = '#000'; ctx.fillRect(x + 8 * z, y - 24 * z, 12 * z, 10 * z); ctx.fillStyle = '#ff0'; ctx.font = `bold ${9 * z}px monospace`; ctx.fillText(u[10], x + 10 * z, y - 16 * z); }
+  if (u[11] & 1 && IMG.fx_kary_32) { ctx.globalAlpha = 0.45; ctx.drawImage(IMG.fx_kary_32, x - 10 * z, y - 26 * z, 20 * z, 20 * z); ctx.globalAlpha = 1; }
+  if (u[8] === 'sammunut' && !IMG[key + '_sammunut']) { ctx.fillStyle = '#ff0'; ctx.font = `${10 * z}px monospace`; ctx.fillText('Zzz', x + 6 * z, y - 18 * z); }
 }
 
 let miniBase = null;
@@ -410,12 +683,14 @@ function drawMini() {
   const W = mini.width, f = W / map.cols;
   if (!miniBase) {
     miniBase = document.createElement('canvas'); miniBase.width = W; miniBase.height = W; const m = miniBase.getContext('2d');
+    if (IMG.minikartta) m.drawImage(IMG.minikartta, 0, 0, W, W); else
     for (let r = 0; r < map.rows; r++) for (let c = 0; c < map.cols; c++) { m.fillStyle = MINI_COLORS[map.terrain[r][c]]; m.fillRect(c * f, r * f, Math.ceil(f), Math.ceil(f)); }
   }
   mctx.drawImage(miniBase, 0, 0);
   for (const b of map.buildings) { const s = cur.b.find(x => x[0] === b.id); mctx.fillStyle = TEAM[s[1]].css; mctx.fillRect(b.col * f, b.row * f, 2 * f, 2 * f); mctx.strokeStyle = '#fff'; mctx.lineWidth = 1; mctx.strokeRect(b.col * f, b.row * f, 2 * f, 2 * f); }
   mctx.fillStyle = '#ddd'; for (const c of cur.c) mctx.fillRect(c[1] * f - 1, c[2] * f - 1, 2, 2);
-  for (const u of cur.u) { mctx.fillStyle = u[2] === 1 ? '#6af' : '#f66'; mctx.fillRect(u[3] * f - 1.5, u[4] * f - 1.5, 3, 3); }
+  for (const u of cur.u) { mctx.fillStyle = u[2] === 1 ? '#6af' : u[2] === 2 ? '#f66' : '#fff'; mctx.fillRect(u[3] * f - 1.5, u[4] * f - 1.5, 3, 3); }
+  if (cur.tap && cur.tap.paikat && Math.floor(performance.now() / 300) % 2) { mctx.fillStyle = '#fc0'; for (const pk of cur.tap.paikat) mctx.fillRect(pk[0] * f - 3, pk[1] * f - 3, 6, 6); }
   mctx.strokeStyle = '#fff'; mctx.lineWidth = 1;
   mctx.strokeRect(cam.x / (TS * cam.z) * f, cam.y / (TS * cam.z) * f, viewW() / (TS * cam.z) * f, viewH() / (TS * cam.z) * f);
 }

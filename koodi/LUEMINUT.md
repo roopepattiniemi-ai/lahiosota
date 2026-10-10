@@ -1,4 +1,4 @@
-# Lähiösota: Etelä-Tampere – raakaversio (koodi)
+# Lähiösota: Etelä-Tampere – v2 (koodi)
 
 Selaimessa pelattava 1v1-reaaliaikastrategia. Palvelin (Node.js + WebSocket) pyörittää pelin ja on auktoriteetti; selain vain piirtää ja lähettää käskyt.
 
@@ -25,7 +25,9 @@ Kaverin kanssa netin yli: palvelimen pitää näkyä internetiin (esim. oma palv
 - Oikea klikkaus: liiku / kerää tölkkikasa (Tölkkijussi, Mopopoika) / hyökkää vihollisen yksikköön tai päämajaan / vie pantit omaan K-Marketiin.
 - Oikea klikkaus minikarttaan = käsky sinne, vasen = kamera sinne.
 - Nuolet tai WASD tai hiiri ruudun reunaan: kamera. Rulla: zoom (1x, 1,5x, 2x). Välilyönti: kamera omaan päämajaan.
-- Z / X / C: kouluta Tölkkijussi / Lähiöjermu / Mopopoika. H: seis. M: äänet päälle/pois.
+- Koulutus: Z Tölkkijussi, X Lähiöjermu, C Mopopoika, B Grillimestari, T Parvekeampuja (Multisilta) / Isä trimmerin kanssa (Peltolammi), Y Mummo rollaattorilla (Multisilta) / Tuunattu Volvo (Peltolammi), F Dnepr, G Mönkijä, J Lada.
+- V + klikkaus: molotovi (Lähiöjermu, Mopopoika, Isä). U: pura kyyti. Kyytiin: valitse jalkaväkeä ja oikea klikkaus omaan Volvoon tai Ladaan.
+- H: seis. M: äänet päälle/pois. Paneelissa musiikin äänenvoimakkuus.
 - Ctrl+1–9 tallentaa ryhmän, 1–9 valitsee sen.
 
 ## Säännöt raakaversiossa
@@ -40,8 +42,32 @@ Kaverin kanssa netin yli: palvelimen pitää näkyä internetiin (esim. oma palv
 - **Bonukset**: K-Market = pantinpalautus, baari = +15 % vahinko lähellä (ja kännit), R-Kioski = +15 % nopeus, Pizzeria = hidas paraneminen, apteekki = parantaa ja selvittää, kahvila = sammuneet heräävät tuplanopeudella, viljelypalsta = +1 €/s, IKEA = puolet vähemmän vahinkoa lähellä. Muut (kirjasto, varikot, St1, Gasum) antavat raakaversiossa +0,5 €/s.
 - **Voitto**: vihollisen päämaja tuhottu.
 
+## V2: uudet yksiköt, aseet ja ajoneuvot
+| Yksikkö | Puoli | Hinta | Ase / erityistä |
+|---|---|---|---|
+| Grillimestari | molemmat | 150 | pihagrilli: makkara + käry hidastaa, lähes paikallaan |
+| Kerrostalon parvekeampuja | Multisilta | 180 | tykistö 9 ruutua, roiskevahinko, ampuu vain paikallaan, ei osu alle 2,5 ruudun |
+| Mummo rollaattorilla | Multisilta | 220 | 500 HP, ottaa puolet vahingosta, ei juuri juo |
+| Isä trimmerin kanssa | Peltolammi | 130 | lähitaistelu, kulkee metsässä kuin tiellä |
+| Tuunattu Volvo | Peltolammi | 300 | kuljettaa 4, jyrää vihollisen jalkaväkeä |
+| Dnepr-sivuvaunupyörä | molemmat | 260 | Emma-konekivääri sivuvaunussa |
+| Mönkijä | molemmat | 160 | Suomi-KP, nopea maastossa, kerää 6 tölkkiä |
+| Lada | molemmat | 120 | kuljettaa 3 |
+- Puukko: Lähiöjermu ja Mopopoika vaihtavat puukkoon, kun vihollinen on vieressä.
+- Molotovi: 15 € (puolet, jos St1 tai Gasum on omistuksessa), +8 kännit, palaa 5 s ja polttaa myös omia. Kännissä (60 %+) voi pudota omiin jalkoihin. Sateessa ei syty.
+- Ajoneuvot ovat 25 % halvempia, jos Huoltovarikko tai Biltema on omistuksessa. Raskaat ajoneuvot ovat hitaita metsässä, suolla ja kalliolla.
+- Humala: tilan noustessa yksikön päälle tulee puhekupla (enintään yksi kupla ja ääni yksikköä kohden 8 s välein, enintään 6 kerralla ruudulla). Kun jalkaväen kännit nousevat 85 %:iin, se oksentaa: laattalättä (säde 1,5 ruutua, 25 s) syö HP:ta 1,5/s, hidastaa kaikkia (myös omia) ja hidastaa tölkkien keräystä.
+
+## Satunnaistapahtumat
+Ensimmäinen noin 90 s kohdalla, sitten 60–110 s välein, 5 s ennakkovaroitus. Ilmoitus näkyy molemmille: banneri, jingle ja kuulutus, paneelissa ikoni ja laskuri, kartalla ja minikartalla paikka, kun tapahtumalla on sijainti.
+Poliisipartio (humalaiset putkaan), Alkon alennusmyynti, Sadekuuro, Panttiautomaatti rikki, Pihakirppis, Saunailta (Peltolammi), Taloyhtiön kokous (Multisilta), Bussi 3 myöhässä, Kesäjuhlat (aselepo, tuplapantit).
+
+## Testaus
+- `node test/sim.js` ajaa pelilogiikan savutestit (koulutus, kyyti, molotovi, sade, kaikki tapahtumat, pitkä bottimatsi).
+- Harjoitushuoneessa (`&harjoitus=1`) selaimen konsolissa toimii `__lahiosota.send({t:'debug', tap:'sadekuuro'})`, `{t:'debug', raha:1000}`, `{t:'debug', kanni:90}` ja `{t:'debug', spawn:'volvo'}`. Näillä ei voi vaikuttaa 1v1-peleihin.
+
 ## Mitä ei vielä ole
-Sumu (fog of war), ajoneuvot, molotovit, Grillimestari, puolikohtaiset erikoisyksiköt, satunnaistapahtumat, animaatiot, tasapainotus.
+Sumu (fog of war), kartan räjähtävät rakennukset (St1/Gasum), tasapainotus.
 
 ## Tiedostot
 - `server.js` – HTTP + WebSocket, huoneet linkeillä, 10 tickiä/s.

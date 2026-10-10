@@ -4,12 +4,48 @@
 
 const TICK = 0.1; // s
 
+// puoli: 0 = molemmat, 1 = vain Multisilta, 2 = vain Peltolammi. luokka: jalka | ajoneuvo
+const PUUKKO = { nimi: 'Puukko', vahinko: 12, kantama: 1.0, tauko: 0.8, aani: 'puukko' };
 const UNIT_TYPES = {
-  tolkkijussi: { nimi: 'Tölkkijussi', hinta: 50, aika: 3, hp: 60, nopeus: 1.6, kantaa: 8, ase: null, juonti: 0.25 },
-  lahiojermu:  { nimi: 'Lähiöjermu', hinta: 80, aika: 4, hp: 100, nopeus: 1.8, kantaa: 0,
-                 ase: { nimi: 'Pystykorva (RK-62)', vahinko: 9, kantama: 4, tauko: 1.0, aani: 'rk62' }, juonti: 0.55 },
-  mopopoika:   { nimi: 'Mopopoika', hinta: 120, aika: 5, hp: 70, nopeus: 3.4, kantaa: 4,
-                 ase: { nimi: 'Jatimatic', vahinko: 4, kantama: 3, tauko: 0.45, aani: 'jatimatic' }, juonti: 0.35 },
+  tolkkijussi:   { nimi: 'Tölkkijussi', puoli: 0, luokka: 'jalka', nappi: 'z', hinta: 50, aika: 3, hp: 60, nopeus: 1.6, kantaa: 8, ase: null, juonti: 0.25 },
+  lahiojermu:    { nimi: 'Lähiöjermu', puoli: 0, luokka: 'jalka', nappi: 'x', hinta: 80, aika: 4, hp: 100, nopeus: 1.8, kantaa: 0, molotovi: true, puukko: true,
+                   ase: { nimi: 'Pystykorva (RK-62)', vahinko: 9, kantama: 4, tauko: 1.0, aani: 'rk62' }, juonti: 0.55 },
+  mopopoika:     { nimi: 'Mopopoika', puoli: 0, luokka: 'jalka', nappi: 'c', hinta: 120, aika: 5, hp: 70, nopeus: 3.4, kantaa: 4, molotovi: true, puukko: true,
+                   ase: { nimi: 'Jatimatic', vahinko: 4, kantama: 3, tauko: 0.45, aani: 'jatimatic' }, juonti: 0.35 },
+  grillimestari: { nimi: 'Grillimestari', puoli: 0, luokka: 'jalka', nappi: 'b', hinta: 150, aika: 6, hp: 220, nopeus: 0.7, kantaa: 0,
+                   ase: { nimi: 'Pihagrilli (makkara + käry, hidastaa)', vahinko: 5, kantama: 3.5, tauko: 0.8, hidastaa: 2.5, aani: 'grilli' }, juonti: 0.4,
+                   kuvaus: 'Puolustuspiste: sylkee makkaraa ja käryä, hidastaa vihollisia. Lähes paikallaan.' },
+  parvekeampuja: { nimi: 'Kerrostalon parvekeampuja', puoli: 1, luokka: 'jalka', nappi: 't', hinta: 180, aika: 7, hp: 60, nopeus: 0.8, kantaa: 0,
+                   ase: { nimi: 'Parvekekivääri (tykistö)', vahinko: 28, kantama: 9, minimi: 2.5, tauko: 4, roiske: 1.3, paikallaan: true, aani: 'parveke' }, juonti: 0.3,
+                   kuvaus: 'Kauas kantava tykistö, ampuu vain paikallaan. Ei osu aivan lähelle.' },
+  mummo:         { nimi: 'Mummo rollaattorilla', puoli: 1, luokka: 'jalka', nappi: 'y', hinta: 220, aika: 8, hp: 500, nopeus: 0.9, kantaa: 0, panssari: 0.5,
+                   ase: { nimi: 'Rollaattori', vahinko: 10, kantama: 1.1, tauko: 1.2, aani: 'puukko' }, juonti: 0.05,
+                   kuvaus: 'Hidas, lähes tuhoutumaton tankki. Ottaa puolet vahingosta, ei juuri juo.' },
+  isa_trimmeri:  { nimi: 'Isä trimmerin kanssa', puoli: 2, luokka: 'jalka', nappi: 't', hinta: 130, aika: 5, hp: 150, nopeus: 1.9, kantaa: 0, metsassa: true, molotovi: true,
+                   ase: { nimi: 'Trimmeri', vahinko: 14, kantama: 1.1, tauko: 0.6, aani: 'trimmeri' }, juonti: 0.45,
+                   kuvaus: 'Lähitaistelija, raivaa pusikot: liikkuu metsässä kuin tiellä.' },
+  volvo:         { nimi: 'Tuunattu Volvo', puoli: 2, luokka: 'ajoneuvo', nappi: 'y', hinta: 300, aika: 9, hp: 350, nopeus: 3.0, kantaa: 0, kyyti: 4, jyraa: 30, ase: null, juonti: 0.2,
+                   kuvaus: 'Kuljettaa 4 jalkaväkeä ja jyrää vihollisen jalkaväkeä. Bensa on kallista.' },
+  dnepr:         { nimi: 'Dnepr-sivuvaunupyörä', puoli: 0, luokka: 'ajoneuvo', nappi: 'f', hinta: 260, aika: 8, hp: 170, nopeus: 3.8, kantaa: 0,
+                   ase: { nimi: 'Emma-konekivääri (sivuvaunussa)', vahinko: 6, kantama: 4.5, tauko: 0.25, aani: 'emma' }, juonti: 0.25 },
+  monkija:       { nimi: 'Mönkijä', puoli: 0, luokka: 'ajoneuvo', nappi: 'g', hinta: 160, aika: 6, hp: 110, nopeus: 3.6, kantaa: 6, maastossa: true,
+                   ase: { nimi: 'Suomi-konepistooli', vahinko: 5, kantama: 3, tauko: 0.35, aani: 'suomikp' }, juonti: 0.25,
+                   kuvaus: 'Kevyt ja nopea maastossa. Voi kerätä 6 tölkkiä.' },
+  lada:          { nimi: 'Lada', puoli: 0, luokka: 'ajoneuvo', nappi: 'j', hinta: 120, aika: 6, hp: 200, nopeus: 3.0, kantaa: 0, kyyti: 3, ase: null, juonti: 0.25,
+                   kuvaus: 'Halpa kuljetus kolmelle jalkaväelle.' },
+};
+const MOLOTOVI = { hinta: 15, kantama: 5, sade: 1.4, kesto: 5, vahinko: 9, tauko: 6 };
+// koskee: 0 = molemmat, 1 = Multisilta, 2 = Peltolammi
+const TAPAHTUMAT = {
+  poliisipartio:         { nimi: 'Poliisipartio', kesto: 40, koskee: 0, teksti: 'Humalaiset (kännit yli 60 %) viedään putkaan 40 s ajan!', varoitus: 'Sireenit kuuluvat jo kaukaa...' },
+  alkon_alennus:         { nimi: 'Alkon alennusmyynti', kesto: 35, koskee: 0, teksti: 'Kaikille +15 % känniä, ja osa jermuista jonottaa Alkoon 35 s.', varoitus: 'Alkon ikkunaan teipataan ALE-lappuja...' },
+  sadekuuro:             { nimi: 'Sadekuuro', kesto: 45, koskee: 0, teksti: 'Kaikki liikkuvat hitaammin ja molotovit eivät syty 45 s ajan.', varoitus: 'Sadepilviä näkyvissä...' },
+  panttiautomaatti_rikki:{ nimi: 'Panttiautomaatti rikki', kesto: 45, koskee: 0, teksti: 'Yhden K-Marketin pullonpalautus on rikki 45 s.', varoitus: 'Panttiautomaatti pitää outoa ääntä...' },
+  pihakirppis:           { nimi: 'Pihakirppis', kesto: 20, koskee: 0, teksti: 'Kentän keskelle ilmestyi isoja tölkkikasoja – nopeat syövät hitaat!', varoitus: 'Joku kantaa pöytiä pihalle...' },
+  saunailta:             { nimi: 'Saunailta', kesto: 25, koskee: 2, teksti: 'Peltolammi: 30 % jalkaväestä löylyissä 25 s, palaavat selvinä ja +30 % vahingolla.', varoitus: 'Peltolammilla lämpiää sauna...' },
+  taloyhtion_kokous:     { nimi: 'Taloyhtiön kokous', kesto: 20, koskee: 1, teksti: 'Multisilta: 30 % jalkaväestä jumissa kokouksessa 20 s.', varoitus: 'Multisillan rappukäytävään ilmestyi kokouskutsu...' },
+  bussi3_myohassa:       { nimi: 'Bussi 3 myöhässä', kesto: 40, koskee: 0, teksti: 'Koulutus kestää tuplasti 40 s ajan.', varoitus: 'Pysäkillä alkaa olla jonoa...' },
+  kesajuhlat:            { nimi: 'Kesäjuhlat', kesto: 30, koskee: 0, teksti: 'Aselepo 30 s: kukaan ei ammu eikä valtaa, ja pantit ovat tuplasti arvokkaampia!', varoitus: 'Joku virittää grilliä ja kaiuttimia...' },
 };
 
 const CAN_VALUE = 10;       // rahaa / tölkki
@@ -71,6 +107,13 @@ class Game {
       2: { money: START_MONEY, queue: [], nimi: 'Peltolammi' },
     };
     this.buildings = [];
+    this.fires = [];        // molotovien liekit
+    this.puddles = [];      // laattalätät
+    this.away = [];         // saunassa / taloyhtiön kokouksessa olevat
+    this.npcs = new Map();  // poliisiauto
+    this.tap = null;        // käynnissä oleva satunnaistapahtuma
+    this.nextTap = opts.firstEvent || 90;
+    this.tapOrder = [];
     this._placeBuildings();
     this._spawnStart();
     this._spawnCans(45);
@@ -124,13 +167,14 @@ class Game {
     // etsi vapaa ruutu rakennuksen ympäriltä
     const spots = [];
     for (let r = Math.floor(y) - 3; r <= Math.floor(y) + 3; r++) for (let c = Math.floor(x) - 3; c <= Math.floor(x) + 3; c++)
-      if (this.passable(c, r)) spots.push([c, r, (c + 0.5 - x) ** 2 + (r + 0.5 - y) ** 2]);
+      if (this.passable(c, r) && !this.buildings.some(b => c >= b.col && c < b.col + 2 && r >= b.row - 1 && r < b.row + 2)) spots.push([c, r, (c + 0.5 - x) ** 2 + (r + 0.5 - y) ** 2]);
     spots.sort((a, b) => a[2] - b[2]);
     let pick = spots[0] || this.nearestPassable(x, y, 10);
     for (const s of spots) { let occ = 0; for (const u of this.units.values()) if (Math.floor(u.x) === s[0] && Math.floor(u.y) === s[1]) occ++; if (!occ) { pick = s; break; } }
     const t = UNIT_TYPES[type];
     const u = { id: this.nextId++, type, owner: team, x: pick[0] + 0.5, y: pick[1] + 0.5, hp: t.hp, maxhp: t.hp,
-      k: 0, carry: 0, state: 'idle', path: null, target: null, cd: 0, stun: 0, omiin: false, repath: 0, collectT: 0, home: null, dir: 1 };
+      k: 0, carry: 0, state: 'idle', path: null, target: null, cd: 0, stun: 0, omiin: false, repath: 0, collectT: 0, home: null, dir: 1,
+      slow: 0, buff: 0, cargo: [], molocd: 0, jonoT: 0, crush: {} };
     this.units.set(u.id, u);
     return u;
   }
@@ -138,8 +182,8 @@ class Game {
   _spawnStart() {
     for (const team of [1, 2]) {
       const h = this.hq(team);
-      for (let i = 0; i < 2; i++) this._spawnUnitNear(team, 'tolkkijussi', h.x, h.y);
-      for (let i = 0; i < 2; i++) this._spawnUnitNear(team, 'lahiojermu', h.x, h.y);
+      for (let i = 0; i < 2; i++) this._spawnUnitNear(team, 'tolkkijussi', h.x, h.y + 1.5);
+      for (let i = 0; i < 2; i++) this._spawnUnitNear(team, 'lahiojermu', h.x, h.y + 1.5);
       // aloitustölkit päämajan lähelle
       for (let i = 0; i < 4; i++) this._spawnCanNear(h.x, h.y, 4, 7, 5 + Math.floor(this.rand() * 4));
     }
@@ -211,11 +255,22 @@ class Game {
     const units = ids.map(id => this.units.get(id)).filter(u => u && u.owner === team);
     if (!units.length) return;
     if (msg.t === 'stop') { for (const u of units) if (u.stun <= 0 && u.state !== 'tobar') { u.state = 'idle'; u.path = null; u.target = null; } return; }
+    if (msg.t === 'unload') { for (const u of units) this._unload(u); return; }
+    if (msg.t === 'molotovi') {
+      const x = +msg.x, y = +msg.y; if (!isFinite(x) || !isFinite(y)) return;
+      for (const u of units) if (UNIT_TYPES[u.type].molotovi && u.stun <= 0 && u.state !== 'tobar') { u.state = 'molotovi'; u.target = { x, y }; u.path = null; u.repath = 0; }
+      return;
+    }
     if (msg.t !== 'order') return;
     const x = +msg.x, y = +msg.y; if (!isFinite(x) || !isFinite(y)) return;
     // mitä klikkauksen alla?
     let enemy = null, ed = 0.7;
-    for (const u of this.units.values()) if (u.owner !== team) { const d = Math.hypot(u.x - x, u.y - (y + 0.15)); if (d < ed) { ed = d; enemy = u; } }
+    let ownVeh = null, vd = 0.8;
+    for (const u of this.units.values()) {
+      const d = Math.hypot(u.x - x, u.y - (y + 0.15));
+      if (u.owner !== team && u.owner !== 0) { if (d < ed) { ed = d; enemy = u; } }
+      else if (u.owner === team && UNIT_TYPES[u.type].kyyti && d < vd) { vd = d; ownVeh = u; }
+    }
     const bld = this.buildings.find(b => x >= b.col && x < b.col + 2 && y >= b.row && y < b.row + 2);
     let can = null, cd = 0.8;
     for (const c of this.cans.values()) { const d = Math.hypot(c.x - x, c.y - y); if (d < cd) { cd = d; can = c; } }
@@ -224,10 +279,12 @@ class Game {
       if (u.stun > 0 || u.state === 'tobar') return;
       const ut = UNIT_TYPES[u.type];
       u.target = null; u.path = null; u.repath = 0;
+      if (ownVeh && ownVeh !== u && ut.luokka === 'jalka') { u.state = 'board'; u.target = { unit: ownVeh.id }; return; }
       if (enemy && ut.ase) { u.state = 'attack'; u.target = { unit: enemy.id }; return; }
+      if (enemy && ut.jyraa) { u.state = 'attack'; u.target = { unit: enemy.id }; return; }
       if (bld && bld.tyyppi === 'paamaja' && bld.owner !== team && ut.ase) { u.state = 'attack'; u.target = { b: bld.id }; return; }
-      if (u.type === 'tolkkijussi' && bld && bld.owner === team && (bld.tyyppi === 'kmarket' || bld.tyyppi === 'paamaja') && u.carry > 0) { u.state = 'return'; u.target = { b: bld.id }; return; }
-      if (ut.kantaa > 0 && can && (u.type === 'tolkkijussi' || u.carry < ut.kantaa)) { u.state = 'collect'; u.target = { can: can.id }; u.home = [can.x, can.y]; return; }
+      if (ut.kantaa > 0 && bld && bld.owner === team && (bld.tyyppi === 'kmarket' || bld.tyyppi === 'paamaja') && u.carry > 0) { u.state = 'return'; u.target = { b: bld.id }; return; }
+      if (ut.kantaa > 0 && can && (u.type === 'tolkkijussi' || u.type === 'monkija' || u.carry < ut.kantaa)) { u.state = 'collect'; u.target = { can: can.id }; u.home = [can.x, can.y]; return; }
       const d = bld ? this._spreadTargets(bld.x, bld.y + 1.2, units.length)[i] : dests[i];
       u.state = 'move'; u.path = this.findPath(u.x, u.y, d[0], d[1]);
       if (!u.path) u.state = 'idle';
@@ -247,9 +304,21 @@ class Game {
 
   _train(team, type) {
     const t = UNIT_TYPES[type]; const p = this.players[team];
-    if (!t || p.money < t.hinta || p.queue.length >= 5) return;
-    p.money -= t.hinta; p.queue.push({ type, left: t.aika, total: t.aika });
+    if (!t || (t.puoli && t.puoli !== team) || p.queue.length >= 5) return;
+    const price = this.price(team, type);
+    if (p.money < price) return;
+    p.money -= price; p.queue.push({ type, left: t.aika, total: t.aika });
   }
+
+  price(team, type) {
+    const t = UNIT_TYPES[type];
+    if (t.luokka === 'ajoneuvo' && (this.ownedBonus(team, 'HUOLTOVARIKKO') || this.ownedBonus(team, 'ROMUTARVIKEVARASTO'))) return Math.round(t.hinta * 0.75);
+    return t.hinta;
+  }
+  molotovPrice(team) { return (this.ownedBonus(team, 'POLTTOAINEVARASTO') || this.ownedBonus(team, 'KAASUVARASTO')) ? Math.round(MOLOTOVI.hinta / 2) : MOLOTOVI.hinta; }
+  get aselepo() { return this.tap && this.tap.key === 'kesajuhlat'; }
+  get sade() { return this.tap && this.tap.key === 'sadekuuro'; }
+  isEnemy(a, b) { return b.owner !== 0 && a.owner !== 0 && b.owner !== a.owner; }
 
   // ---------- simulaatio ----------
   ownedBonus(team, name) { return this.buildings.some(b => b.owner === team && b.bonus === name); }
@@ -261,7 +330,7 @@ class Game {
     // tuotanto
     for (const team of [1, 2]) {
       const p = this.players[team];
-      if (p.queue.length) { const q = p.queue[0]; q.left -= dt; if (q.left <= 0) { p.queue.shift(); const h = this.hq(team); if (h) { const u = this._spawnUnitNear(team, q.type, h.x, h.y + 1.5); this.events.push({ e: 'valmis', owner: team, type: q.type, id: u.id }); } } }
+      if (p.queue.length) { const q = p.queue[0]; q.left -= dt * (this.tap && this.tap.key === 'bussi3_myohassa' ? 0.5 : 1); if (q.left <= 0) { p.queue.shift(); const h = this.hq(team); if (h) { const u = this._spawnUnitNear(team, q.type, h.x, h.y + 1.5); this.events.push({ e: 'valmis', owner: team, type: q.type, id: u.id }); } } }
       let income = 0;
       for (const b of this.buildings) if (b.owner === team) {
         if (b.bonus === 'PERUNAPELTO') income += 1;
@@ -272,16 +341,30 @@ class Game {
     // tölkkien uusiutuminen
     if (this.tick % 150 === 0 && this.cans.size < 45) this._spawnCans(2);
 
-    for (const u of [...this.units.values()]) this._stepUnit(u, dt);
+    this._stepEvents(dt);
+    for (const u of [...this.units.values()]) if (this.units.has(u.id)) this._stepUnit(u, dt);
+    this._stepFires(dt);
+    this._stepPuddles(dt);
+    this._stepNpcs(dt);
     this._separate();
     this._stepCapture(dt);
   }
 
   _speed(u) {
-    let s = UNIT_TYPES[u.type].nopeus;
+    const ut = UNIT_TYPES[u.type] || {};
+    let s = ut.nopeus || 3.5;
     if (u.k >= 60) s *= 0.8;
-    if (this.ownedBonus(u.owner, 'KARKKIKAIVOS')) s *= 1.15;
-    return s / Math.max(0.4, this.costAt(u.x, u.y));
+    if (u.slow > 0) s *= 0.5;
+    if (u.inPuddle) s *= 0.6;
+    if (this.sade) s *= 0.8;
+    if (u.owner && this.ownedBonus(u.owner, 'KARKKIKAIVOS')) s *= 1.15;
+    let c = this.costAt(u.x, u.y);
+    const tid = this.terrain[Math.floor(u.y)] && this.terrain[Math.floor(u.y)][Math.floor(u.x)];
+    const rough = tid === 1 || tid === 9 || tid === 10; // metsä, suo, kallio
+    if (rough && ut.metsassa) c = 1;
+    else if (rough && ut.maastossa) c = Math.max(1, c * 0.6);
+    else if (rough && ut.luokka === 'ajoneuvo') c *= 1.6;
+    return s / Math.max(0.4, c);
   }
 
   _moveAlong(u, dt) {
@@ -307,6 +390,9 @@ class Game {
 
   _stepUnit(u, dt) {
     const ut = UNIT_TYPES[u.type];
+    if (u.slow > 0) u.slow -= dt;
+    if (u.buff > 0) u.buff -= dt;
+    if (u.molocd > 0) u.molocd -= dt;
     // --- kännimittari ---
     let dk = ut.juonti;
     if (this.nearOwned(u.owner, u, 'KALJA-VARASTO')) dk += 4;
@@ -315,10 +401,21 @@ class Game {
     if (this.nearOwned(u.owner, u, 'LÄÄKINTÄASEMA')) { dk -= 5; u.hp = Math.min(u.maxhp, u.hp + 5 * dt); }
     if (this.ownedBonus(u.owner, 'PIZZATEHDAS')) u.hp = Math.min(u.maxhp, u.hp + 0.5 * dt);
     u.k = Math.max(0, Math.min(100, u.k + dk * dt));
+    { // humalatilan muutokset -> puhekuplat asiakkaalle
+      const tila = u.k >= 85 ? 3 : u.k >= 60 ? 2 : u.k >= 20 ? 1 : 0;
+      if (u.ktila === undefined) u.ktila = tila;
+      if (tila > u.ktila) {
+        const laatta = tila === 3 && UNIT_TYPES[u.type].luokka === 'jalka';
+        this.events.push({ e: 'humala', id: u.id, owner: u.owner, tila: laatta ? 'laatta' : tila, x: u.x, y: u.y });
+        if (laatta) this._puke(u);
+      }
+      u.ktila = tila;
+      if (tila >= 2 && this.tick % 40 === u.id % 40 && this.rand() < 0.12) this.events.push({ e: 'humala', id: u.id, owner: u.owner, tila: 'hik', x: u.x, y: u.y });
+    }
     if (u.stun > 0) { u.stun -= dt * (this.ownedBonus(u.owner, 'KAHVILÄHDE') ? 2 : 1); if (u.stun <= 0) { u.state = 'idle'; u.path = null; } return; }
     if (u.k >= 85 && this.tick % 10 === 0 && this.rand() < 0.05) {
       const r = this.rand();
-      if (r < 0.15) { this.units.delete(u.id); this._dropCans(u.x, u.y, u.carry); this.events.push({ e: 'kotiin', id: u.id, owner: u.owner, type: u.type, x: u.x, y: u.y }); return; }
+      if (r < 0.15) { this._remove(u); this._dropCans(u.x, u.y, u.carry); this.events.push({ e: 'kotiin', id: u.id, owner: u.owner, type: u.type, x: u.x, y: u.y }); return; }
       else if (r < 0.5) { u.stun = 8; u.k -= 30; u.state = 'sammunut'; u.path = null; this.events.push({ e: 'sammui', id: u.id, owner: u.owner, x: u.x, y: u.y }); return; }
       else if (r < 0.75 && ut.ase) { u.omiin = true; this.events.push({ e: 'omiin', id: u.id, owner: u.owner, x: u.x, y: u.y }); }
       else {
@@ -329,7 +426,7 @@ class Game {
     if (u.cd > 0) u.cd -= dt;
 
     // friendly fire
-    if (u.omiin && ut.ase && u.cd <= 0) {
+    if (u.omiin && ut.ase && u.cd <= 0 && !this.aselepo) {
       const f = this._nearestUnit(u, ut.ase.kantama, x => x.owner === u.owner && x !== u);
       u.omiin = false;
       if (f) { this._shoot(u, f); return; }
@@ -338,10 +435,46 @@ class Game {
     switch (u.state) {
       case 'idle': case 'sammunut': {
         u.state = 'idle';
-        if (ut.ase) { const e = this._nearestUnit(u, VISION, x => x.owner !== u.owner); if (e) { u.state = 'attack'; u.target = { unit: e.id, auto: true }; } }
+        if (ut.ase && !this.aselepo) { const e = this._nearestUnit(u, ut.ase.kantama > VISION ? ut.ase.kantama : VISION, x => this.isEnemy(u, x)); if (e) { u.state = 'attack'; u.target = { unit: e.id, auto: true }; } }
         break;
       }
-      case 'move': if (this._moveAlong(u, dt)) { u.state = 'idle'; u.path = null; } break;
+      case 'move': if (this._moveAlong(u, dt)) { u.state = 'idle'; u.path = null; } if (ut.jyraa) this._crush(u); break;
+      case 'board': {
+        const v = this.units.get(u.target && u.target.unit);
+        if (!v || v.owner !== u.owner) { u.state = 'idle'; u.path = null; break; }
+        if (Math.hypot(v.x - u.x, v.y - u.y) < 1.2) {
+          if (v.cargo.length >= UNIT_TYPES[v.type].kyyti) { u.state = 'idle'; u.path = null; this.events.push({ e: 'taynna', owner: u.owner, x: v.x, y: v.y }); break; }
+          this.units.delete(u.id); u.state = 'idle'; u.path = null; v.cargo.push(u);
+          this.events.push({ e: 'kyytiin', id: u.id, v: v.id, owner: u.owner, type: v.type });
+        } else this._goTo(u, v.x, v.y, dt) || (u.state = 'idle');
+        break;
+      }
+      case 'molotovi': {
+        const { x, y } = u.target;
+        if (this.aselepo) { u.state = 'idle'; break; }
+        if (Math.hypot(x - u.x, y - u.y) <= MOLOTOVI.kantama) {
+          u.path = null;
+          if (u.molocd > 0) break;
+          const price = this.molotovPrice(u.owner);
+          if (this.players[u.owner].money < price) { this.events.push({ e: 'eirahaa', owner: u.owner }); u.state = 'idle'; break; }
+          this.players[u.owner].money -= price; u.molocd = MOLOTOVI.tauko; u.k = Math.min(100, u.k + 8);
+          let tx = x, ty = y, oma = false;
+          if (u.k >= 60 && this.rand() < 0.3) { tx = u.x; ty = u.y; oma = true; }
+          if (tx !== u.x) u.dir = tx > u.x ? 1 : -1;
+          const syttyi = !this.sade;
+          this.events.push({ e: 'molotovi', id: u.id, owner: u.owner, x: u.x, y: u.y, tx, ty, syttyi, oma });
+          if (syttyi) this.fires.push({ x: tx, y: ty, r: MOLOTOVI.sade, t: MOLOTOVI.kesto, owner: u.owner, delay: 0.5 });
+          u.state = 'idle';
+        } else this._goTo(u, x, y, dt) || (u.state = 'idle');
+        break;
+      }
+      case 'jono': { // Alkon jono
+        const a = this.tap && this.tap.alko;
+        if (!a) { u.state = 'idle'; u.path = null; break; }
+        if (Math.hypot(a[0] - u.x, a[1] - u.y) < 1.6) { u.path = null; u.jonoT += dt; if (u.jonoT > 8) { u.k = Math.min(100, u.k + 25); u.state = 'idle'; u.jonoT = 0; } }
+        else this._goTo(u, a[0], a[1], dt) || (u.state = 'idle');
+        break;
+      }
       case 'tobar': {
         const b = this.buildings.find(b => b.id === u.target.b);
         if (Math.hypot(b.x - u.x, b.y + 1 - u.y) < 1.5) { u.state = 'idle'; u.path = null; u.k = Math.min(100, u.k + 10); }
@@ -350,12 +483,21 @@ class Game {
       }
       case 'attack': {
         let tx, ty, tgtU = null, tgtB = null;
+        if (this.aselepo) { u.state = 'idle'; u.path = null; break; }
         if (u.target.unit) { tgtU = this.units.get(u.target.unit); if (!tgtU) { u.state = 'idle'; u.path = null; break; } tx = tgtU.x; ty = tgtU.y; }
         else { tgtB = this.buildings.find(b => b.id === u.target.b); if (!tgtB || tgtB.owner === u.owner || tgtB.hp <= 0) { u.state = 'idle'; break; } tx = tgtB.x; ty = tgtB.y; }
-        const range = ut.ase.kantama + (tgtB ? 1.4 : 0);
         const d = Math.hypot(tx - u.x, ty - u.y);
-        if (u.target.auto && d > VISION + 2) { u.state = 'idle'; u.path = null; break; }
-        if (d <= range) { u.path = null; if (tx !== u.x) u.dir = tx > u.x ? 1 : -1; if (u.cd <= 0) this._shoot(u, tgtU, tgtB); }
+        if (ut.jyraa && !ut.ase) { // Volvo: aja päälle
+          if (!tgtU) { u.state = 'idle'; break; }
+          this._goTo(u, tx, ty, dt) || (u.state = 'idle'); this._crush(u); break;
+        }
+        let w = ut.ase;
+        if (ut.puukko && tgtU && d <= PUUKKO.kantama) w = PUUKKO;
+        const range = w.kantama + (tgtB ? 1.4 : 0);
+        const autoR = Math.max(VISION, w.kantama) + 2;
+        if (u.target.auto && d > autoR) { u.state = 'idle'; u.path = null; break; }
+        if (w.minimi && d < w.minimi) { if (u.target.auto) { u.state = 'idle'; u.path = null; } break; }
+        if (d <= range) { u.path = null; if (tx !== u.x) u.dir = tx > u.x ? 1 : -1; if (u.cd <= 0) this._shoot(u, tgtU, tgtB, w); }
         else if (!this._goTo(u, tx, ty, dt)) u.state = 'idle';
         break;
       }
@@ -371,21 +513,21 @@ class Game {
         }
         if (Math.hypot(c.x - u.x, c.y - u.y) < 0.6) {
           u.path = null; u.collectT += dt;
-          if (u.collectT >= 0.4) { u.collectT = 0; c.n--; u.carry++; this.events.push({ e: 'kilina', x: c.x, y: c.y, owner: u.owner }); if (c.n <= 0) this.cans.delete(c.id); }
+          if (u.collectT >= (this.inPuddle(c) ? 0.9 : 0.4)) { u.collectT = 0; c.n--; u.carry++; this.events.push({ e: 'kilina', x: c.x, y: c.y, owner: u.owner }); if (c.n <= 0) this.cans.delete(c.id); }
         } else this._goTo(u, c.x, c.y, dt) || (u.state = 'idle');
         break;
       }
       case 'return': {
-        let b = u.target && u.target.b ? this.buildings.find(x => x.id === u.target.b && x.owner === u.owner) : null;
+        let b = u.target && u.target.b ? this.buildings.find(x => x.id === u.target.b && x.owner === u.owner && !x.suljettu) : null;
         if (!b) {
-          const opts = this.buildings.filter(x => x.owner === u.owner && x.tyyppi === 'kmarket');
+          const opts = this.buildings.filter(x => x.owner === u.owner && x.tyyppi === 'kmarket' && !x.suljettu);
           if (!opts.length && h) opts.push(h); // hätävara: päämaja ottaa tölkit puoleen hintaan
           b = opts.sort((a, c) => Math.hypot(a.x - u.x, a.y - u.y) - Math.hypot(c.x - u.x, c.y - u.y))[0];
           if (!b) { u.state = 'idle'; break; }
           u.target = { b: b.id }; u.path = null;
         }
         if (Math.hypot(b.x - u.x, b.y - u.y) < 2.6) {
-          const val = u.carry * CAN_VALUE * (b.tyyppi === 'kmarket' ? 1 : 0.5);
+          const val = u.carry * CAN_VALUE * (b.tyyppi === 'kmarket' ? 1 : 0.5) * (this.tap && this.tap.key === 'kesajuhlat' ? 2 : 1);
           this.players[u.owner].money += val;
           this.events.push({ e: 'pantti', owner: u.owner, x: b.x, y: b.y, n: u.carry, raha: val });
           u.carry = 0; u.path = null;
@@ -407,31 +549,205 @@ class Game {
     return best;
   }
 
-  _shoot(u, tgtU, tgtB) {
-    const w = UNIT_TYPES[u.type].ase;
+  _dmgMul(u) {
+    let m = 1;
+    if (u.k >= 20 && u.k < 60) m *= 1.25; else if (u.k >= 60) m *= 1.1;
+    if (this.nearOwned(u.owner, u, 'KALJA-VARASTO')) m *= 1.15;
+    if (u.buff > 0) m *= 1.3;
+    return m;
+  }
+  _damage(attacker, tgtU, dmg) {
+    const tt = UNIT_TYPES[tgtU.type];
+    if (tt.panssari) dmg *= tt.panssari;
+    if (this.nearOwned(tgtU.owner, tgtU, 'LIHAPULLALINNAKE')) dmg *= 0.5;
+    tgtU.hp -= dmg;
+    if (tgtU.hp <= 0) { this._kill(tgtU); return true; }
+    if (attacker && attacker.owner !== tgtU.owner && tgtU.state === 'idle' && UNIT_TYPES[tgtU.type].ase && !this.aselepo) { tgtU.state = 'attack'; tgtU.target = { unit: attacker.id, auto: true }; }
+    return false;
+  }
+  _kill(u) {
+    this._remove(u);
+    this._dropCans(u.x, u.y, (UNIT_TYPES[u.type].luokka === 'jalka' ? 2 : 4) + u.carry);
+    this.events.push({ e: 'kuoli', id: u.id, owner: u.owner, type: u.type, x: u.x, y: u.y, ajoneuvo: UNIT_TYPES[u.type].luokka === 'ajoneuvo' });
+  }
+  _remove(u) {
+    if (u.cargo && u.cargo.length) this._unload(u, 25);
+    this.units.delete(u.id);
+  }
+  _unload(v, dmg = 0) {
+    if (!v.cargo || !v.cargo.length) return;
+    const spots = this._spreadTargets(v.x, v.y, v.cargo.length);
+    v.cargo.forEach((p, i) => {
+      p.x = spots[i][0]; p.y = spots[i][1]; p.state = 'idle'; p.path = null; p.target = null;
+      this.units.set(p.id, p);
+      if (dmg) this._damage(null, p, dmg);
+    });
+    this.events.push({ e: 'purku', id: v.id, owner: v.owner, n: v.cargo.length, x: v.x, y: v.y });
+    v.cargo = [];
+  }
+  _crush(v) {
+    const ut = UNIT_TYPES[v.type];
+    for (const o of [...this.units.values()]) {
+      if (!this.isEnemy(v, o) || UNIT_TYPES[o.type].luokka !== 'jalka') continue;
+      if (Math.hypot(o.x - v.x, o.y - v.y) > 0.6) continue;
+      if ((v.crush[o.id] || 0) > this.time) continue;
+      v.crush[o.id] = this.time + 1;
+      this.events.push({ e: 'jyrays', id: v.id, owner: v.owner, x: o.x, y: o.y });
+      this._damage(v, o, ut.jyraa);
+    }
+  }
+
+  _shoot(u, tgtU, tgtB, w) {
+    w = w || UNIT_TYPES[u.type].ase;
     u.cd = w.tauko;
-    let dmg = w.vahinko, acc = 0.85;
-    if (u.k >= 20 && u.k < 60) { dmg *= 1.25; acc += 0.07; }
-    else if (u.k >= 60) { dmg *= 1.1; acc -= 0.15 + (u.k - 60) / 200; }
-    if (this.nearOwned(u.owner, u, 'KALJA-VARASTO')) dmg *= 1.15;
+    let dmg = w.vahinko * this._dmgMul(u), acc = 0.85;
+    if (u.k >= 20 && u.k < 60) acc += 0.07; else if (u.k >= 60) acc -= 0.15 + (u.k - 60) / 200;
+    if (w.roiske) acc -= 0.15; // tykistö on epätarkka
     const tx = tgtU ? tgtU.x : tgtB.x, ty = tgtU ? tgtU.y : tgtB.y;
     const hit = tgtB ? true : this.rand() < acc;
-    this.events.push({ e: 'ammus', w: w.aani, x: u.x, y: u.y, tx, ty, hit, owner: u.owner });
-    if (!hit) return;
+    this.events.push({ e: 'ammus', id: u.id, w: w.aani, x: u.x, y: u.y, tx, ty, hit, owner: u.owner, roiske: !!w.roiske, lahi: w.kantama <= 1.2 });
     if (tgtB) {
       tgtB.hp -= dmg;
       if (tgtB.hp <= 0) { tgtB.hp = 0; this.events.push({ e: 'tuhoutui', b: tgtB.id, x: tgtB.x, y: tgtB.y }); if (tgtB.tyyppi === 'paamaja') { this.winner = u.owner; this.events.push({ e: 'voitto', winner: u.owner }); } }
       return;
     }
-    if (this.nearOwned(tgtU.owner, tgtU, 'LIHAPULLALINNAKE')) dmg *= 0.5;
-    tgtU.hp -= dmg;
-    if (tgtU.hp <= 0) {
-      this.units.delete(tgtU.id);
-      this._dropCans(tgtU.x, tgtU.y, 2 + tgtU.carry);
-      this.events.push({ e: 'kuoli', id: tgtU.id, owner: tgtU.owner, type: tgtU.type, x: tgtU.x, y: tgtU.y });
-      // mopopoika varastaa tölkkikuorman
-      if (u.type === 'mopopoika' && tgtU.carry > 0) { /* tölkit putoavat maahan, mopo voi kerätä */ }
-    } else if (tgtU.state === 'idle' && UNIT_TYPES[tgtU.type].ase) { tgtU.state = 'attack'; tgtU.target = { unit: u.id, auto: true }; }
+    if (w.roiske) {
+      // osuu maahan (ohi = vähän sivuun) ja roiskuu kaikkiin vihollisiin lähellä
+      const ix = hit ? tx : tx + (this.rand() - 0.5) * 2.5, iy = hit ? ty : ty + (this.rand() - 0.5) * 2.5;
+      this.events.push({ e: 'rajahdys', x: ix, y: iy, pieni: true });
+      for (const o of [...this.units.values()]) {
+        if (!this.isEnemy(u, o)) continue;
+        const d = Math.hypot(o.x - ix, o.y - iy); if (d > w.roiske) continue;
+        this._damage(u, o, dmg * (1 - d / w.roiske * 0.6));
+      }
+      return;
+    }
+    if (!hit) return;
+    if (w.hidastaa) tgtU.slow = w.hidastaa;
+    this._damage(u, tgtU, dmg);
+  }
+
+  _puke(u) {
+    if (this.puddles.length >= 30) this.puddles.shift();
+    this.puddles.push({ x: u.x, y: u.y + 0.1, r: 1.5, t: 25, max: 25 });
+  }
+  inPuddle(u) { return this.puddles.some(p => Math.hypot(p.x - u.x, p.y - u.y) <= p.r * Math.max(0.5, p.t / p.max)); }
+  _stepPuddles(dt) {
+    for (const p of this.puddles) p.t -= dt;
+    this.puddles = this.puddles.filter(p => p.t > 0);
+    if (!this.puddles.length) return;
+    for (const u of [...this.units.values()]) if (u.owner && this.inPuddle(u)) {
+      u.inPuddle = true; u.hp -= 1.5 * dt; if (u.hp <= 0) this._kill(u);
+    } else u.inPuddle = false;
+  }
+
+  _stepFires(dt) {
+    for (const f of this.fires) {
+      if (f.delay > 0) { f.delay -= dt; continue; }
+      f.t -= dt;
+      for (const o of [...this.units.values()]) {
+        if (o.owner === 0) continue;
+        if (Math.hypot(o.x - f.x, o.y - f.y) <= f.r) { const killer = [...this.units.values()].find(x => x.owner === f.owner); this._damage(o.owner !== f.owner ? killer : null, o, MOLOTOVI.vahinko * dt); }
+      }
+    }
+    this.fires = this.fires.filter(f => f.t > 0);
+  }
+
+  // ---------- satunnaistapahtumat ----------
+  startEvent(key) {
+    const def = TAPAHTUMAT[key]; if (!def) return;
+    if (this.tap) this._endEvent();
+    const tap = { key, left: def.kesto, nimi: def.nimi };
+    this.tap = tap;
+    const infantry = (team) => [...this.units.values()].filter(u => u.owner === team && UNIT_TYPES[u.type].luokka === 'jalka' && u.stun <= 0);
+    const pickSome = (arr, frac) => { const n = arr.length ? Math.max(1, Math.round(arr.length * frac)) : 0; const out = []; const a = arr.slice(); while (out.length < n && a.length) out.push(a.splice(Math.floor(this.rand() * a.length), 1)[0]); return out; };
+    switch (key) {
+      case 'poliisipartio': {
+        const edges = [];
+        for (let c = 0; c < this.W; c++) for (const r of [0, this.H - 1]) if (this.passable(c, r) && this.cost[this.terrain[r][c]] <= 0.5) edges.push([c, r]);
+        for (let r = 0; r < this.H; r++) for (const c of [0, this.W - 1]) if (this.passable(c, r) && this.cost[this.terrain[r][c]] <= 0.5) edges.push([c, r]);
+        const e = edges[Math.floor(this.rand() * edges.length)] || this.nearestPassable(this.W / 2, this.H / 2);
+        const id = this.nextId++;
+        this.npcs.set(id, { id, type: 'poliisiauto', owner: 0, x: e[0] + 0.5, y: e[1] + 0.5, path: null, repath: 0, dir: 1, k: 0, hp: 1, carry: 0, state: 'move', stun: 0, slow: 0 });
+        break;
+      }
+      case 'alkon_alennus': {
+        tap.alko = this.nearestPassable(this.W / 2, this.H / 2 - 4).map(v => v + 0.5);
+        for (const u of this.units.values()) if (u.owner) u.k = Math.min(100, u.k + 15);
+        for (const team of [1, 2]) for (const u of pickSome([...this.units.values()].filter(u => u.owner === team && u.type === 'lahiojermu' && u.stun <= 0), 0.4)) { u.state = 'jono'; u.path = null; u.jonoT = 0; u.repath = 0; }
+        break;
+      }
+      case 'panttiautomaatti_rikki': {
+        const km = this.buildings.filter(b => b.tyyppi === 'kmarket');
+        const b = km[Math.floor(this.rand() * km.length)]; if (b) { b.suljettu = true; tap.b = b.id; }
+        break;
+      }
+      case 'pihakirppis': {
+        for (let i = 0; i < 8; i++) for (let tries = 0; tries < 60; tries++) {
+          const c = Math.floor(8 + this.rand() * (this.W - 16)), r = Math.floor(20 + this.rand() * 20);
+          if (this.passable(c, r)) { const id = this.nextId++; this.cans.set(id, { id, x: c + 0.5, y: r + 0.5, n: 10 + Math.floor(this.rand() * 6), kirppis: true }); (tap.paikat = tap.paikat || []).push([c + 0.5, r + 0.5]); break; }
+        }
+        break;
+      }
+      case 'saunailta': case 'taloyhtion_kokous': {
+        const team = key === 'saunailta' ? 2 : 1;
+        for (const u of pickSome(infantry(team), 0.3)) {
+          this.units.delete(u.id);
+          this.away.push({ u, back: this.time + def.kesto, sauna: key === 'saunailta', team });
+        }
+        tap.team = team;
+        break;
+      }
+    }
+    this.events.push({ e: 'tapahtuma', key, nimi: def.nimi, teksti: def.teksti, kesto: def.kesto, koskee: def.koskee });
+  }
+  _endEvent() {
+    const tap = this.tap; if (!tap) return;
+    if (tap.b) { const b = this.buildings.find(x => x.id === tap.b); if (b) b.suljettu = false; }
+    for (const n of [...this.npcs.values()]) this.npcs.delete(n.id);
+    for (const u of this.units.values()) if (u.state === 'jono') { u.state = 'idle'; u.path = null; }
+    this.events.push({ e: 'tapahtuma_loppui', key: tap.key, nimi: tap.nimi, koskee: TAPAHTUMAT[tap.key].koskee });
+    this.tap = null;
+  }
+  _stepEvents(dt) {
+    // palaajat
+    for (const a of this.away.slice()) if (this.time >= a.back) {
+      this.away.splice(this.away.indexOf(a), 1);
+      const u = a.u;
+      if (a.sauna) { const h = this.hq(a.team); if (h) { const s = this._spreadTargets(h.x, h.y + 1.5, 1)[0]; u.x = s[0]; u.y = s[1]; } u.k = 0; u.hp = u.maxhp; u.buff = 60; }
+      u.state = 'idle'; u.path = null; u.target = null;
+      this.units.set(u.id, u);
+      this.events.push({ e: 'palasi', id: u.id, owner: u.owner, sauna: a.sauna });
+    }
+    if (this.tap) { this.tap.left -= dt; if (this.tap.left <= 0) this._endEvent(); return; }
+    this.nextTap -= dt;
+    if (!this.tapOrder.length) { this.tapOrder = Object.keys(TAPAHTUMAT); for (let i = this.tapOrder.length - 1; i > 0; i--) { const j = Math.floor(this.rand() * (i + 1)); [this.tapOrder[i], this.tapOrder[j]] = [this.tapOrder[j], this.tapOrder[i]]; } }
+    const next = this.tapOrder[this.tapOrder.length - 1];
+    if (this.nextTap <= 5 && this.warned !== next + this.nextTapId) {
+      this.warned = next + this.nextTapId;
+      const d = TAPAHTUMAT[next];
+      this.events.push({ e: 'tapahtuma_varoitus', key: next, nimi: d.nimi, teksti: d.varoitus, koskee: d.koskee, sekunnit: Math.ceil(this.nextTap) });
+    }
+    if (this.nextTap <= 0) {
+      this.nextTapId = (this.nextTapId || 0) + 1;
+      this.startEvent(this.tapOrder.pop());
+      this.nextTap = 60 + this.rand() * 50;
+    }
+  }
+  _stepNpcs(dt) {
+    for (const n of this.npcs.values()) {
+      // poliisi ajaa humalaisimman kohti ja vie putkaan
+      let best = null, bk = 59;
+      for (const u of this.units.values()) if (u.owner && u.k > bk) { bk = u.k; best = u; }
+      n.repath -= dt;
+      if (best && (n.repath <= 0 || !n.path || !n.path.length)) { n.path = this.findPath(n.x, n.y, best.x, best.y); n.repath = 1.5; }
+      else if (!best && (!n.path || !n.path.length)) { const p = this.nearestPassable(this.rand() * this.W, this.rand() * this.H); if (p) n.path = this.findPath(n.x, n.y, p[0] + 0.5, p[1] + 0.5); }
+      if (n.path) this._moveAlong(n, dt);
+      for (const u of [...this.units.values()]) if (u.owner && u.k >= 60 && Math.hypot(u.x - n.x, u.y - n.y) < 1.3) {
+        this._remove(u); this._dropCans(u.x, u.y, u.carry);
+        this.events.push({ e: 'putkaan', id: u.id, owner: u.owner, type: u.type, x: u.x, y: u.y });
+      }
+    }
   }
 
   _separate() {
@@ -449,9 +765,9 @@ class Game {
 
   _stepCapture(dt) {
     for (const b of this.buildings) {
-      if (b.tyyppi === 'paamaja') continue;
+      if (b.tyyppi === 'paamaja' || this.aselepo) continue;
       const n = { 1: 0, 2: 0 };
-      for (const u of this.units.values()) if (u.stun <= 0 && Math.hypot(u.x - b.x, u.y - b.y) <= CAPTURE_RADIUS) n[u.owner]++;
+      for (const u of this.units.values()) if (u.owner && u.stun <= 0 && Math.hypot(u.x - b.x, u.y - b.y) <= CAPTURE_RADIUS) n[u.owner]++;
       const present = [1, 2].filter(t => n[t] > 0);
       if (present.length === 1 && present[0] !== b.owner) {
         const t = present[0];
@@ -471,16 +787,24 @@ class Game {
     return {
       cols: this.W, rows: this.H, terrain: this.terrain, terrainTypes: this.map.terrain_types, attribution: this.map.attribution,
       buildings: this.buildings.map(b => ({ id: b.id, tyyppi: b.tyyppi, nimi: b.nimi, osm: b.osm, col: b.col, row: b.row, kuvaus: b.kuvaus, maxhp: b.maxhp || 0, owner: b.owner })),
-      unitTypes: UNIT_TYPES, canValue: CAN_VALUE,
+      unitTypes: UNIT_TYPES, canValue: CAN_VALUE, molotovi: MOLOTOVI, tapahtumat: TAPAHTUMAT,
     };
   }
   snapshot() {
     const r1 = v => Math.round(v * 100) / 100;
     const s = {
       t: 's', tick: this.tick, time: r1(this.time), winner: this.winner,
-      u: [...this.units.values()].map(u => [u.id, u.type, u.owner, r1(u.x), r1(u.y), Math.ceil(u.hp), Math.round(u.k), u.carry, u.stun > 0 ? 'sammunut' : u.state, u.dir]),
+      u: [...this.units.values(), ...this.npcs.values()].map(u => [u.id, u.type, u.owner, r1(u.x), r1(u.y), Math.ceil(u.hp), Math.round(u.k), u.carry, u.stun > 0 ? 'sammunut' : u.state, u.dir, u.cargo ? u.cargo.length : 0, (u.slow > 0 ? 1 : 0) | (u.buff > 0 ? 2 : 0)]),
       c: [...this.cans.values()].map(c => [c.id, r1(c.x), r1(c.y), c.n]),
-      b: this.buildings.map(b => [b.id, b.owner, b.cap.team, r1(b.cap.p), Math.ceil(b.hp || 0)]),
+      b: this.buildings.map(b => [b.id, b.owner, b.cap.team, r1(b.cap.p), Math.ceil(b.hp || 0), b.suljettu ? 1 : 0]),
+      l: this.puddles.map(p => [r1(p.x), r1(p.y), p.r, Math.round(p.t / p.max * 100) / 100]),
+      f: this.fires.filter(f => !(f.delay > 0)).map(f => [r1(f.x), r1(f.y), f.r, r1(f.t)]),
+      tap: this.tap ? { key: this.tap.key, nimi: this.tap.nimi, left: Math.ceil(this.tap.left), alko: this.tap.alko || null, team: this.tap.team || 0, koskee: TAPAHTUMAT[this.tap.key].koskee,
+        paikat: this.tap.alko ? [this.tap.alko] : this.tap.key === 'poliisipartio' ? [...this.npcs.values()].map(n => [r1(n.x), r1(n.y)]) : this.tap.b ? [[this.buildings.find(b => b.id === this.tap.b).x, this.buildings.find(b => b.id === this.tap.b).y]] : (this.tap.paikat || []).filter(p => [...this.cans.values()].some(c => c.x === p[0] && c.y === p[1])) } : null,
+      nextTap: this.tap ? null : Math.ceil(this.nextTap),
+      away: this.away.map(a => [a.team, a.sauna ? 1 : 0]),
+      hinnat: { 1: Object.fromEntries(Object.keys(UNIT_TYPES).map(k => [k, this.price(1, k)])), 2: Object.fromEntries(Object.keys(UNIT_TYPES).map(k => [k, this.price(2, k)])) },
+      molo: { 1: this.molotovPrice(1), 2: this.molotovPrice(2) },
       p: { 1: { money: Math.floor(this.players[1].money), queue: this.players[1].queue.map(q => [q.type, r1(q.left), q.total]) },
            2: { money: Math.floor(this.players[2].money), queue: this.players[2].queue.map(q => [q.type, r1(q.left), q.total]) } },
       ev: this.events,
@@ -490,4 +814,4 @@ class Game {
   }
 }
 
-module.exports = { Game, UNIT_TYPES, TICK };
+module.exports = { Game, UNIT_TYPES, TAPAHTUMAT, TICK };

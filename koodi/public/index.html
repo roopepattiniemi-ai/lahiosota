@@ -15,6 +15,7 @@
     <button id="luo">Luo uusi peli (1v1)</button>
     <button id="harjoitus">Harjoittele yksin</button>
   </div>
+  <p id="aulaPuoli"></p>
   <div id="linkki" hidden>
     <p>Lähetä tämä linkki kaverille:</p>
     <input id="linkkiKentta" readonly>
@@ -23,8 +24,8 @@
   </div>
   <div class="ohje">
     <b>Ohjaus:</b> vasen klikkaus / raahaus = valitse, oikea klikkaus = liiku / kerää tölkit / hyökkää / palauta pantit.
-    Nuolinäppäimet tai WASD (tai hiiri reunaan) = kameran liikutus, rulla = zoom, H = seis, M = musiikki päälle/pois, välilyönti = kamera päämajaan.
-    Ctrl+1–9 = ryhmä, 1–9 = valitse ryhmä. Z/X/C = kouluta Tölkkijussi/Lähiöjermu/Mopopoika.
+    Nuolinäppäimet tai WASD (tai hiiri reunaan) = kameran liikutus, rulla = zoom, H = seis, M = äänet päälle/pois, välilyönti = kamera päämajaan, V = molotovi, U = pura kyyti (kyytiin: oikea klikkaus omaan Volvoon/Ladaan).
+    Ctrl+1–9 = ryhmä, 1–9 = valitse ryhmä. Koulutus: Z Jussi, X Jermu, C Mopo, B Grillimestari, T/Y puolen erikoisyksiköt, F Dnepr, G mönkijä, J Lada.
   </div>
   <p class="attr">Karttadata © OpenStreetMap-tekijät (ODbL)</p>
 </div>
@@ -34,13 +35,19 @@
     <canvas id="minikartta" width="192" height="192"></canvas>
     <div id="joukkue"></div>
     <div id="raha"></div>
+    <div id="aanet"><button id="mykistys" title="Äänet päälle/pois (M)">🔊</button> Musiikki <input id="voimakkuus" type="range" min="0" max="100" title="Musiikin äänenvoimakkuus"></div>
     <div id="koulutus"></div>
     <div id="jono"></div>
+    <div id="kyvyt"></div>
+    <div id="tapahtumaTila"></div>
     <div id="valinta"></div>
     <div id="loki"></div>
     <div class="attr">© OpenStreetMap-tekijät</div>
   </div>
   <div id="ilmoitus" hidden></div>
+  <div id="banneri" hidden></div>
+  <div id="tapahtumaBanneri" hidden></div>
+  <div id="varoitus" hidden></div>
 </div>
 <script src="peli.js"></script>
 </body>
