@@ -81,3 +81,15 @@ Kaikki saumattomia looppeja (`loop: true`), suositus volume 0.4–0.5.
 - `musiikki_kannirynnakko` – 130 BPM, vuorottelee umpa-pa-polkkaa harmonikalla ja särörokkia, ~1:58
 - `musiikki_valikko` – tumma valikkoteema, 80 BPM, ~0:48
 Pelin soittolista: `musiikki_taistelu`, `musiikki_piiritys`, `musiikki_kannirynnakko` (satunnainen, ei samaa kahdesti peräkkäin). Valikossa `musiikki_valikko`.
+
+## V3: olennot (generoi_aanet_olennot.py)
+Vesihiisi:
+- `sfx_vesihiisi_ennakko` (4 s) + `sfx_vesihiisi_kuplat` tai `sfx_vesihiisi_kuplat_loop` – ennakkovaroitus kuplien kanssa ennen nousua
+- `sfx_vesihiisi_sihina_1..3` – Roopen toivoma sihinä, satunnainen (nousun jälkeen / hyökätessä / ennen sukellusta)
+- `sfx_vesihiisi_nousu` (iso loiske), `sfx_vesihiisi_hyokkays`, `sfx_vesihiisi_sukellus`
+- huudot: `aani_vesihiisi_tulkaa` ("Tulkaa veteen..."), `aani_vesihiisi_syvyyksiin` ("Syvyyksiin!"), `aani_vesihiisi_sss`
+Peikko:
+- `sfx_peikko_murina_1..3` (vaeltaa / huomaa yksikön), `sfx_peikko_karjunta_1..2` (hyökkäys, pelotus)
+- `sfx_peikko_kivi_heitto` + `sfx_peikko_kivi_osuma`, `sfx_peikko_askel`, `sfx_peikko_kaatuu`
+- huudot: `aani_peikko_` + `mun_metsa`, `tolkit` (varastaa kuorman), `pois` (pelotus), `nalka`
+Tapahtumat: `aani_tapahtuma_peikot`, `aani_tapahtuma_vesihiisi` (jinglen jälkeen kuten muut).

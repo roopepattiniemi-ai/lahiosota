@@ -9,7 +9,7 @@ const { Game, TICK } = require('./game');
 
 const PORT = +process.env.PORT || 3000;
 const ROOT = path.resolve(__dirname, '..');
-const MAP_FILE = process.env.MAP_FILE || path.join(ROOT, 'kartta', 'pelikentta_v1_tiles.json');
+const MAP_FILE = process.env.MAP_FILE || path.join(ROOT, 'kartta', 'pelikentta_v2_tiles.json');
 const MAP = JSON.parse(fs.readFileSync(MAP_FILE, 'utf8'));
 
 const STATIC = { '/grafiikka/': path.join(ROOT, 'grafiikka'), '/aanet/': path.join(ROOT, 'aanet'), '/': path.join(__dirname, 'public') };
@@ -91,6 +91,8 @@ wss.on('connection', (ws, req) => {
     if (msg.t === 'debug' && r.solo) {
       const g = r.game;
       if (msg.tap) g.startEvent(String(msg.tap));
+      if (msg.olento === 'peikot') g.nextPeikko = 0;
+      if (msg.olento === 'vesihiisi') { g.nextHiisi = 0; const [c, r] = g.shore[0] || [0, 0]; const h = g.hq(team); if (h) g._spawnUnitNear(team, 'lahiojermu', c + 2, r); }
       if (msg.raha) g.players[team].money += Math.min(100000, +msg.raha || 0);
       if (msg.kanni) for (const u of g.units.values()) if (u.owner === team) u.k = Math.min(100, +msg.kanni);
       if (msg.spawn) { const h = g.hq(team); g._spawnUnitNear(team, String(msg.spawn), h.x, h.y + 1.5); }

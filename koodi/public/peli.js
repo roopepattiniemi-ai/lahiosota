@@ -3,15 +3,15 @@
 (() => {
 const TS = 32; // ruudun koko pikseleinä (grafiikka 32x32)
 const PANEL = 215;
-const TEAM = { 1: { nimi: 'Multisilta', vari: 'sininen', varinimi: 'sininen', suunta: 'etelässä', css: '#1f6fe0' }, 2: { nimi: 'Peltolammi', vari: 'punainen', varinimi: 'punainen', suunta: 'pohjoisessa', css: '#d8262b' }, 0: { nimi: 'Puolueeton', css: '#999' } };
-const TERRAIN_FILES = ['00_ruoho', '01_metsa', '02_vesi', '03_tie', '04_moottoritie', '05_rata', '06_rakennus', '07_teollisuus', '08_pelto', '09_suo', '10_kallio', '11_puisto', '12_silta'];
-const MINI_COLORS = ['#4d7a35', '#2b4d22', '#2d5a8c', '#777', '#555', '#6b5a48', '#8a8a8a', '#666158', '#9a9a4a', '#4f5f3a', '#7a7066', '#5f9a45', '#8a6a3a'];
+const TEAM = { 1: { nimi: 'Multisilta', vari: 'sininen', varinimi: 'sininen', suunta: 'etelässä', css: '#1f6fe0' }, 2: { nimi: 'Peltolammi', vari: 'punainen', varinimi: 'punainen', suunta: 'pohjoisessa', css: '#d8262b' }, 3: { nimi: 'Olennot', css: '#6a4' }, 0: { nimi: 'Puolueeton', css: '#999' } };
+const TERRAIN_FILES = ['00_ruoho', '01_metsa', '02_vesi', '03_tie', '04_moottoritie', '05_rata', '06_rakennus', '07_teollisuus', '08_pelto', '09_suo', '10_kallio', '11_puisto', '12_silta', '13_polku'];
+const MINI_COLORS = ['#4d7a35', '#2b4d22', '#2d5a8c', '#777', '#555', '#6b5a48', '#8a8a8a', '#666158', '#9a9a4a', '#4f5f3a', '#7a7066', '#5f9a45', '#8a6a3a', '#9c7e50'];
 const EXTRA_BUILDINGS = { 'PIZZATEHDAS': 'pizzatehdas', 'KARKKIKAIVOS': 'karkkikaivos', 'LÄÄKINTÄASEMA': 'laakintaasema', 'TIEDUSTELUKESKUS': 'tiedustelukeskus',
   'KAHVILÄHDE': 'kahvilahde', 'PERUNAPELTO': 'perunapelto', 'HUOLTOVARIKKO': 'huoltovarikko', 'ROMUTARVIKEVARASTO': 'romutarvikevarasto',
   'POLTTOAINEVARASTO': 'polttoainevarasto', 'KAASUVARASTO': 'kaasuvarasto', 'LIHAPULLALINNAKE': 'lihapullalinnake' };
 let TRAIN_KEYS = {}; // täytetään yksikkötyypeistä (nappi-kenttä) omalle puolelle
 const WEAPON_SFX = { rk62: 'sfx_laukaus_rk62', jatimatic: 'sfx_laukaus_jatimatic', emma: 'sfx_laukaus_emma', suomikp: 'sfx_laukaus_suomikp', puukko: 'sfx_puukko',
-  parveke: 'sfx_parveke_ampuu', trimmeri: 'sfx_trimmeri', grilli: 'sfx_grilli_ampuu' };
+  parveke: 'sfx_parveke_ampuu', trimmeri: 'sfx_trimmeri', grilli: 'sfx_grilli_ampuu', kivi: 'sfx_peikko_kivi_heitto', hiisi: 'sfx_vesihiisi_hyokkays' };
 const MOVE_SFX = { mopopoika: 'sfx_mopo', dnepr: 'sfx_dnepr', volvo: 'sfx_volvo', monkija: 'sfx_monkija', lada: 'sfx_lada', mummo: 'sfx_rollaattori' };
 const VOICES = {
   tolkkijussi: ['valittu', 'kuittaus_1', 'kuittaus_2', 'kuittaus_3', 'baariin'],
@@ -38,7 +38,14 @@ const KUPLAT = {
   kotiin: [['Mää lähen kotiin...', 'Mää meen nukkuun.', 'Huomenna uusiks...'], ['aani_kanni_kotiin']],
   putkaan: [['Mää en oo tehny mitään!', 'Ei putkaan!', 'Konstaapeli hei...'], ['sfx_poliisi_sireeni']],
 };
-const PAKKO = { sammui: 1, kotiin: 1, putkaan: 1, laatta: 1 }; // nämä ohittavat 8 s rajan
+// olentojen huudot
+KUPLAT.mun_metsa = [['MUN METSÄ!', 'GRRAAAH!', 'Pois mun puista!'], ['aani_peikko_mun_metsa', 'sfx_peikko_karjunta_1']];
+KUPLAT.tolkit = [['TÖLKIT TÄNNE!', 'Mun tölkit!', 'Kilisee... MUN!'], ['aani_peikko_tolkit']];
+KUPLAT.pois = [['POIS!', 'HÄIPYKÄÄ!', 'RAAAAH!'], ['aani_peikko_pois', 'sfx_peikko_karjunta_2']];
+KUPLAT.nalka = [['Peikolla nälkä...', 'Mmm... jermu...', 'Grrr...'], ['aani_peikko_nalka', 'sfx_peikko_murina_1', 'sfx_peikko_murina_2', 'sfx_peikko_murina_3']];
+KUPLAT.hiisi = [['Tulkaa syvyyksiin...', 'Sssssss...', 'Vesi on lämmintä...', 'SSSHHHH!'], ['aani_vesihiisi_tulkaa', 'aani_vesihiisi_syvyyksiin', 'aani_vesihiisi_sss', 'sfx_vesihiisi_sihina_1', 'sfx_vesihiisi_sihina_2', 'sfx_vesihiisi_sihina_3']];
+const olentoMerkki = {}; // id -> merkin loppuaika
+const PAKKO = { hiisi: 1, sammui: 1, kotiin: 1, putkaan: 1, laatta: 1 }; // nämä ohittavat 8 s rajan
 const STATE_FI = { board: 'nousee kyytiin', molotovi: 'heittää molotovia', jono: 'Alkon jonossa',  idle: 'odottaa', move: 'liikkuu', attack: 'hyökkää', collect: 'kerää tölkkejä', return: 'vie pantteja', gohome: 'palaa keräämään', tobar: 'lähti baariin!', sammunut: 'SAMMUNUT' };
 
 const $ = (id) => document.getElementById(id);
@@ -57,7 +64,11 @@ function loadImg(key, src) { return new Promise(res => { const i = new Image(); 
 function loadAssets() {
   const p = [];
   TERRAIN_FILES.forEach((f, i) => p.push(loadImg('t' + i, '/grafiikka/maasto/' + f + '.png')));
+  for (const [k, n] of [['peikko', 1], ['peikko_kavely', 4], ['peikko_hyokkays', 4], ['peikko_karjuu', 2], ['peikko_kaatunut', 1], ['vesihiisi', 1], ['vesihiisi_nousu', 6], ['vesihiisi_hyokkays', 4], ['vesihiisi_sukellus', 6]]) p.push(loadImg('o_' + k, `/grafiikka/olennot/${k}.png`));
+  for (const k of ['kivi_8', 'kuplat_32', 'loiske_32']) p.push(loadImg('fx_' + k, `/grafiikka/efektit/${k}.png`));
+  for (const k of ['peikot', 'vesihiisi']) p.push(loadImg('tap_' + k, `/grafiikka/ikonit/tapahtuma_${k}.png`));
   for (const [u, t] of Object.entries(map.unitTypes)) {
+    if (t.olento) continue;
     const dir = t.luokka === 'ajoneuvo' ? 'ajoneuvot' : 'yksikot';
     for (const c of ['sininen', 'punainen']) {
       for (const suf of ['', '_kavely', '_ampuu', '_sammunut']) if (!(suf === '_ampuu' && !t.ase) && !(suf === '_sammunut' && t.luokka === 'ajoneuvo')) p.push(loadImg(u + '_' + c + suf, `/grafiikka/${dir}/${u}_${c}${suf}.png`));
@@ -223,6 +234,8 @@ function handleEvent(e) {
     case 'ammus':
       shootT[e.id] = performance.now();
       if (e.roiske) effects.push({ arc: true, x: e.x, y: e.y, tx: e.tx, ty: e.ty, t: 0.8, t0: 0.8, img: 'fx_makkara_8' });
+      else if (e.w === 'kivi') effects.push({ arc: true, x: e.x, y: e.y - 0.6, tx: e.tx, ty: e.ty, t: 0.5, t0: 0.5, img: 'fx_kivi_8', spin: true, osuu: e.hit && vis ? 'sfx_peikko_kivi_osuma' : null });
+      else if (e.w === 'hiisi') effects.push({ splash: true, x: e.tx, y: e.ty, t: 0.4, t0: 0.4 });
       else if (e.w === 'grilli') effects.push({ arc: true, x: e.x, y: e.y, tx: e.tx, ty: e.ty, t: 0.35, t0: 0.35, img: 'fx_makkara_8', kary: true });
       else if (!e.lahi) effects.push({ x: e.x, y: e.y, tx: e.tx, ty: e.ty, hit: e.hit, t: 0.12, c: e.owner === 1 ? '#9cf' : '#f99', flash: true });
       if (vis) snd(WEAPON_SFX[e.w] || 'sfx_laukaus_rk62', e.w === 'parveke' ? 0.5 : 0.25, 90); break;
@@ -243,6 +256,13 @@ function handleEvent(e) {
       if (e.tila === 'laatta' && (mine || vis)) setTimeout(() => snd('sfx_laatta_latsahdys', 0.6, 200), 700); break;
     case 'palasi': if (mine) log(e.sauna ? 'Saunojat palasivat terästettyinä (+30 % vahinko)!' : 'Kokous loppui, joukot palasivat.'); break;
     case 'tapahtuma': onTapahtuma(e); break;
+    case 'olento': olentoMerkki[e.id] = performance.now() + 10000; onTapahtuma(e);
+      if (e.key === 'vesihiisi') { effects.push({ splash: true, x: e.x, y: e.y, t: 0.5, t0: 0.5 }); snd('sfx_vesihiisi_nousu', 0.8, 100); } break;
+    case 'hiisi_kuplat': onVaroitus({ teksti: e.teksti, koskee: 0, sekunnit: 4 }); snd('sfx_vesihiisi_ennakko', vis ? 0.8 : 0.4, 100); break;
+    case 'hiisi_sukelsi': effects.push({ dive: true, x: e.x, y: e.y, t: 0.75, t0: 0.75 }); if (vis) snd('sfx_vesihiisi_sukellus', 0.7, 100); log('Vesihiisi painui pinnan alle.', 'tapahtuma'); break;
+    case 'huuto': bubble(e.id, e.kind, e.x, e.y, true); break;
+    case 'karjunta': if (vis) snd('sfx_peikko_karjunta_' + (1 + Math.floor(Math.random() * 2)), 0.8, 300); break;
+    case 'varasti': if (mine) log(`Peikko varasti ${e.n} tölkkiä!`, 'punainen'); break;
     case 'tapahtuma_loppui': snd('sfx_tapahtuma_loppui', 0.6, 100); log(`Tapahtuma päättyi: ${e.nimi}.`, 'tapahtuma'); break;
     case 'tapahtuma_varoitus': onVaroitus(e); break;
     case 'kilina': if (mine && vis) snd('sfx_tolkki_kilina', 0.35, 250); break;
@@ -254,7 +274,8 @@ function handleEvent(e) {
       else log(`${TEAM[e.owner].nimi} valtasi: ${b.nimi}`);
       break;
     }
-    case 'kuoli': if (e.ajoneuvo) { effects.push({ boom: true, x: e.x, y: e.y, t: 0.6, t0: 0.6 }); if (vis) snd('sfx_rakennus_tuhoutui', 0.6, 200); } if (vis) snd('sfx_kuolema', 0.5, 150); if (vis) floaters.push({ x: e.x, y: e.y, t: 1, txt: '✝', c: '#fff' }); if (mine) log(`${map.unitTypes[e.type].nimi} kaatui.`); break;
+    case 'kuoli': if (e.owner === 3) { if (e.type === 'peikko') { effects.push({ corpse: true, x: e.x, y: e.y, t: 4, t0: 4 }); if (vis) snd('sfx_peikko_kaatuu', 0.8, 100); } else effects.push({ dive: true, x: e.x, y: e.y, t: 0.75, t0: 0.75 }); log(`${map.unitTypes[e.type].nimi} kaatui ja pudotti tölkkejä!`, 'tapahtuma'); break; }
+      if (e.ajoneuvo) { effects.push({ boom: true, x: e.x, y: e.y, t: 0.6, t0: 0.6 }); if (vis) snd('sfx_rakennus_tuhoutui', 0.6, 200); } if (vis) snd('sfx_kuolema', 0.5, 150); if (vis) floaters.push({ x: e.x, y: e.y, t: 1, txt: '✝', c: '#fff' }); if (mine) log(`${map.unitTypes[e.type].nimi} kaatui.`); break;
     case 'kotiin': bubble(e.id, 'kotiin', e.x, e.y, false); if (mine) { voice('lahiojermu', 'kanni'); log(`${map.unitTypes[e.type].nimi}: "Mää lähen kotiin..." (liian kännissä)`, 'punainen'); } break;
     case 'sammui': bubble(e.id, 'sammui', e.x, e.y, mine || vis); if (mine) log('Yksikkö sammui! (kännimittari täynnä)'); break;
     case 'omiin': bubble(e.id, 'omiin', e.x, e.y, mine || vis); if (mine) log('Kännissä ampui omiaan!', 'punainen'); break;
@@ -293,7 +314,7 @@ function onTapahtuma(e) {
   const ic = IMG['tap_' + e.key], bg = IMG.ui_tapahtuma_banneri;
   el.className = bg ? 'kuvalla' : '';
   el.style.backgroundImage = bg ? `url(${bg.src})` : '';
-  el.innerHTML = (ic ? `<img class="ikoni" src="${ic.src}">` : '') + `<div class="teksti"><b>${e.nimi.toUpperCase()}!</b> <small>${e.kesto} s</small><br>${e.teksti}<br><small>${lippu(e.koskee)} ${koskeeTxt(e.koskee)}</small></div>`;
+  el.innerHTML = (ic ? `<img class="ikoni" src="${ic.src}">` : '') + `<div class="teksti"><b>${e.nimi.toUpperCase()}!</b> ${e.kesto ? `<small>${e.kesto} s</small>` : ''}<br>${e.teksti}<br><small>${lippu(e.koskee)} ${koskeeTxt(e.koskee)}</small></div>`;
   el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 6000);
 }
 function onVaroitus(e) {
@@ -564,15 +585,26 @@ function draw(dt) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) it.b ? drawBuilding(it.b) : drawUnit(it.u, it.x, it.y);
 
+  // vesihiiden kuplat (ennakkovaroitus) + olentojen karttamerkit
+  if (cur.hb) { const [x, y] = toScreen(cur.hb[0], cur.hb[1]); const im = IMG.fx_kuplat_32; const fr = Math.floor(nowMs / 166) % 4;
+    if (im) ctx.drawImage(im, fr * 32, 0, 32, 32, x - 16 * z, y - 16 * z, 32 * z, 32 * z); else { ctx.fillStyle = '#cef'; for (let k = 0; k < 4; k++) { ctx.beginPath(); ctx.arc(x + Math.sin(nowMs / 200 + k * 2) * 8 * z, y + Math.cos(nowMs / 300 + k) * 5 * z, 2 * z, 0, 7); ctx.fill(); } } }
+  loopSnd('sfx_vesihiisi_kuplat_loop', !!(cur.hb && onScreen(cur.hb[0], cur.hb[1])), 0.4);
+  { const mk = IMG.ui_tapahtuma_karttamerkki; const pts = cur.hb ? [cur.hb] : [];
+    for (const [id, until] of Object.entries(olentoMerkki)) { if (nowMs > until) { delete olentoMerkki[id]; continue; } const u = cur.um.get(+id); if (u) pts.push(lerpPos(u)); }
+    for (const p of pts) { const [x, y] = toScreen(p[0], p[1]); const yy = y - 44 * z; if (mk) { const fw = mk.height, fr = Math.floor(nowMs / 150) % Math.max(1, Math.floor(mk.width / fw)); ctx.drawImage(mk, fr * fw, 0, fw, fw, x - fw * z / 2, yy - fw * z, fw * z, fw * z); } else { ctx.fillStyle = '#fc0'; ctx.fillRect(x - 3, yy - 8, 6, 8); } } }
   // efektit
   for (let i = effects.length - 1; i >= 0; i--) {
-    const e = effects[i]; e.t -= dt; if (e.t <= 0) { effects.splice(i, 1); continue; }
+    const e = effects[i]; e.t -= dt; if (e.t <= 0) { if (e.osuu) snd(e.osuu, 0.5, 150); effects.splice(i, 1); continue; }
     if (e.boom) { const im = IMG.fx_rajahdys_64; const fr = Math.min(5, Math.floor((1 - e.t / e.t0) * 6)); const [x, y] = toScreen(e.x, e.y); const sz = (e.small ? 40 : 64) * z;
       if (im) ctx.drawImage(im, fr * 64, 0, 64, 64, x - sz / 2, y - sz * 0.7, sz, sz); else { ctx.fillStyle = '#fa0'; ctx.beginPath(); ctx.arc(x, y, sz / 3, 0, 7); ctx.fill(); } continue; }
     if (e.arc) { const a = 1 - e.t / e.t0; const px = e.x + (e.tx - e.x) * a, py = e.y + (e.ty - e.y) * a - Math.sin(a * Math.PI) * 1.5; const [x, y] = toScreen(px, py); const im = IMG[e.img];
       if (im) { ctx.save(); ctx.translate(x, y); if (e.spin) ctx.rotate(a * 12); ctx.drawImage(im, -im.width * z / 2, -im.height * z / 2, im.width * z, im.height * z); ctx.restore(); } else { ctx.fillStyle = '#c84'; ctx.fillRect(x - 3, y - 3, 6, 6); }
       if (e.kary && IMG.fx_kary_32 && a > 0.8) { const [kx, ky] = toScreen(e.tx, e.ty); ctx.globalAlpha = 0.6; ctx.drawImage(IMG.fx_kary_32, kx - 16 * z, ky - 24 * z, 32 * z, 32 * z); ctx.globalAlpha = 1; }
       continue; }
+    if (e.splash || e.dive || e.corpse) { const [x, y] = toScreen(e.x, e.y); const a = 1 - e.t / e.t0;
+      if (e.corpse) { const im = IMG.o_peikko_kaatunut; ctx.globalAlpha = Math.min(1, e.t); if (im) ctx.drawImage(im, x - 24 * z, y - 43 * z, 48 * z, 48 * z); ctx.globalAlpha = 1; continue; }
+      if (e.dive && IMG.o_vesihiisi_sukellus) { const fr = Math.min(5, Math.floor(a * 6)); ctx.drawImage(IMG.o_vesihiisi_sukellus, fr * 48, 0, 48, 48, x - 24 * z, y - 43 * z, 48 * z, 48 * z); continue; }
+      const im = IMG.fx_loiske_32; if (im) { const fr = Math.min(3, Math.floor(a * 4)); ctx.drawImage(im, fr * 32, 0, 32, 32, x - 16 * z, y - 24 * z, 32 * z, 32 * z); } else { ctx.strokeStyle = '#9cf'; ctx.beginPath(); ctx.arc(x, y, a * 12 * z, 0, 7); ctx.stroke(); } continue; }
     if (e.mark) { const [x, y] = toScreen(e.x, e.y); ctx.strokeStyle = e.c; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, (1 - e.t * 2) * 10 * z + 3, 0, 7); ctx.stroke(); continue; }
     const [x1, y1] = toScreen(e.x, e.y - 0.35), [x2, y2] = toScreen(e.tx + (e.hit ? 0 : 0.4), e.ty - 0.3 + (e.hit ? 0 : 0.3));
     ctx.strokeStyle = e.c; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
@@ -652,6 +684,7 @@ function drawUnit(u, ux, uy) {
   const t = map.unitTypes[u[1]] || { hp: 1, luokka: 'ajoneuvo' };
   const veh = t.luokka === 'ajoneuvo';
   if (sel) { ctx.strokeStyle = '#4f4'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(x, y, (veh ? 14 : 9) * z, 4 * z, 0, 0, 7); ctx.stroke(); }
+  if (t.olento) { drawOlento(u, x, y, z, sel, t, ux, uy); return; }
   const col = u[2] === 2 ? 'punainen' : 'sininen';
   const key = u[1] + '_' + col;
   const now = performance.now();
@@ -678,6 +711,24 @@ function drawUnit(u, ux, uy) {
   if (u[8] === 'sammunut' && !IMG[key + '_sammunut']) { ctx.fillStyle = '#ff0'; ctx.font = `${10 * z}px monospace`; ctx.fillText('Zzz', x + 6 * z, y - 18 * z); }
 }
 
+function drawOlento(u, x, y, z, sel, t, ux, uy) {
+  const now = performance.now();
+  const shooting = shootT[u[0]] && now - shootT[u[0]] < 500;
+  const P = u[1] === 'peikko' ? 'o_peikko' : 'o_vesihiisi';
+  let im = IMG[P], nfr = 1, fr = 0;
+  const st = (n, ms, loop = true) => { const k = IMG[P + n]; if (!k) return; im = k; nfr = Math.round(k.width / 48); fr = loop ? Math.floor(now / ms) % nfr : Math.min(nfr - 1, Math.floor((now - (shootT[u[0]] || now)) / ms)); };
+  if (u[8] === 'nousu') { im = IMG.o_vesihiisi_nousu || im; nfr = 6; fr = Math.min(5, Math.floor((now - (spawnT[u[0]] || (spawnT[u[0]] = now))) / 125)); }
+  else if (shooting) st('_hyokkays', 125, false);
+  else if (u[8] === 'karjuu') st('_karjuu', 250);
+  else if (u[8] === 'move' && u[1] === 'peikko') st('_kavely', 200);
+  ctx.save(); ctx.translate(x, y); if (u[9] < 0) ctx.scale(-1, 1);
+  if (im) ctx.drawImage(im, fr * 48, 0, 48, 48, -24 * z, -43 * z, 48 * z, 48 * z);
+  else { ctx.fillStyle = u[1] === 'peikko' ? '#4a6a2a' : '#2a6a7a'; ctx.fillRect(-10 * z, -30 * z, 20 * z, 28 * z); }
+  ctx.restore();
+  if (sel || u[5] < t.hp) bar(x - 14 * z, y - 46 * z, 28 * z, u[5] / t.hp, '#c6f');
+}
+const spawnT = {};
+
 let miniBase = null;
 function drawMini() {
   const W = mini.width, f = W / map.cols;
@@ -689,7 +740,8 @@ function drawMini() {
   mctx.drawImage(miniBase, 0, 0);
   for (const b of map.buildings) { const s = cur.b.find(x => x[0] === b.id); mctx.fillStyle = TEAM[s[1]].css; mctx.fillRect(b.col * f, b.row * f, 2 * f, 2 * f); mctx.strokeStyle = '#fff'; mctx.lineWidth = 1; mctx.strokeRect(b.col * f, b.row * f, 2 * f, 2 * f); }
   mctx.fillStyle = '#ddd'; for (const c of cur.c) mctx.fillRect(c[1] * f - 1, c[2] * f - 1, 2, 2);
-  for (const u of cur.u) { mctx.fillStyle = u[2] === 1 ? '#6af' : u[2] === 2 ? '#f66' : '#fff'; mctx.fillRect(u[3] * f - 1.5, u[4] * f - 1.5, 3, 3); }
+  for (const u of cur.u) { mctx.fillStyle = u[2] === 1 ? '#6af' : u[2] === 2 ? '#f66' : u[2] === 3 ? '#c6f' : '#fff'; mctx.fillRect(u[3] * f - 1.5, u[4] * f - 1.5, 3, 3); }
+  if (cur.hb && Math.floor(performance.now() / 300) % 2) { mctx.fillStyle = '#c6f'; mctx.fillRect(cur.hb[0] * f - 3, cur.hb[1] * f - 3, 6, 6); }
   if (cur.tap && cur.tap.paikat && Math.floor(performance.now() / 300) % 2) { mctx.fillStyle = '#fc0'; for (const pk of cur.tap.paikat) mctx.fillRect(pk[0] * f - 3, pk[1] * f - 3, 6, 6); }
   mctx.strokeStyle = '#fff'; mctx.lineWidth = 1;
   mctx.strokeRect(cam.x / (TS * cam.z) * f, cam.y / (TS * cam.z) * f, viewW() / (TS * cam.z) * f, viewH() / (TS * cam.z) * f);

@@ -1,6 +1,6 @@
 // Pelilogiikan savutesti: node test/sim.js
 const { Game, UNIT_TYPES, TAPAHTUMAT } = require('../game');
-const MAP = require('../../kartta/pelikentta_v1_tiles.json');
+const MAP = require('../../kartta/pelikentta_v2_tiles.json');
 const assert = (c, m) => { if (!c) { console.error('VIRHE:', m); process.exitCode = 1; } else console.log('ok  ', m); };
 const run = (g, s) => { for (let i = 0; i < s * 10; i++) { g.step(); g.snapshot(); } };
 
@@ -53,3 +53,28 @@ const run = (g, s) => { for (let i = 0; i < s * 10; i++) { g.step(); g.snapshot(
   }
   console.log('     tapahtumat:', [...evs].join(' '));
   assert(true, 'pitkä matsi ajettiin, voittaja ' + g.winner + ', aika ' + Math.round(g.time) + ' s'); }
+
+// 7. v3: metsäpeikot ja vesihiisi
+{ const g = new Game(MAP, { seed: 7, firstEvent: 1e9, firstPeikko: 1, firstHiisi: 1e9 });
+  assert(g.shore.length > 10, 'rantavesiruudut löytyvät (' + g.shore.length + ')');
+  run(g, 2); const pk = [...g.units.values()].filter(u => u.type === 'peikko');
+  assert(pk.length >= 1 && pk.length <= 3 && pk.every(p => g._forest(Math.floor(p.x), Math.floor(p.y))), 'peikot syntyivät metsään (' + pk.length + ')');
+  g.nextPeikko = 0; run(g, 1); g.nextPeikko = 0; run(g, 1); g.nextPeikko = 0; run(g, 1);
+  assert([...g.units.values()].filter(u => u.type === 'peikko').length <= 3, 'peikkoja enintään 3');
+  // peikko hyökkää lähelle tulleeseen ja varastaa kuorman
+  const p = pk[0]; const j = g._spawnUnitNear(1, 'tolkkijussi', p.x + 1, p.y); j.carry = 5; j.state = 'idle';
+  let stole = false, hit = false; const hp0 = j.hp;
+  for (let i = 0; i < 400 && !(stole || hit); i++) { j.state = 'idle'; g.step(); const s = g.snapshot(); if (s.ev.some(e => e.e === 'varasti')) stole = true; if (j.hp < hp0 || !g.units.has(j.id)) hit = true; if (s.ev.some(e => e.e === 'karjunta')) hit = true; }
+  assert(stole || hit, 'peikko reagoi lähellä olevaan (varasti=' + stole + ', hyökkäsi/karjui=' + hit + ')');
+  // kaatunut peikko pudottaa tölkkejä
+  const c0 = [...g.cans.values()].reduce((a, c) => a + c.n, 0); const p2 = [...g.units.values()].find(u => u.type === 'peikko'); g._damage(null, p2, 9999);
+  assert([...g.cans.values()].reduce((a, c) => a + c.n, 0) >= c0 + 6, 'kaatunut peikko pudotti tölkkejä'); }
+{ const g = new Game(MAP, { seed: 8, firstEvent: 1e9, firstPeikko: 1e9, firstHiisi: 1 });
+  const [c, r] = g.shore[0]; const u = g._spawnUnitNear(1, 'lahiojermu', c + 0.5, r + 0.5); u.x = c + 0.5 + 1.5; while (!g.passable(Math.floor(u.x), Math.floor(u.y))) u.x -= 0.5;
+  let ev = []; for (let i = 0; i < 60; i++) { g.step(); ev = ev.concat(g.snapshot().ev); }
+  assert(ev.some(e => e.e === 'hiisi_kuplat'), 'vesihiisi: kuplat ennen nousua');
+  assert(ev.some(e => e.e === 'olento' && e.key === 'vesihiisi'), 'vesihiisi nousi');
+  const h = [...g.units.values()].find(x => x.type === 'vesihiisi'); assert(h && g.terrain[Math.floor(h.y)][Math.floor(h.x)] === 2, 'hiisi on vedessä');
+  for (let i = 0; i < 160; i++) { g.step(); ev = ev.concat(g.snapshot().ev); }
+  assert(ev.some(e => e.e === 'ammus' && e.w === 'hiisi'), 'hiisi hyökkäsi rannalla olevaan');
+  assert(ev.some(e => e.e === 'hiisi_sukelsi') || !g.units.has(h.id), 'hiisi sukelsi takaisin'); }

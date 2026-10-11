@@ -75,3 +75,48 @@ Kerrostalojen katot vain rakennus-ruuduilla, puut vain metsässä/puistoissa (ei
 Päämajoja, K-Marketeja ja bonusrakennuksia EI ole kuvassa (koodi piirtää spritet); niiden 2x2-ruudun alla on laatoitettu pihapohja.
 Paletti kvantisoitu ≤64 väriin (PNG-palettikuva).
 Karttadata © OpenStreetMap contributors (ODbL 1.0, https://www.openstreetmap.org/copyright) – attribuutio näytettävä pelissä.
+
+## Kartta v2: OSM-tiet ja metsäpolut
+
+Tiet, polut ja rata piirretään nyt suoraan OpenStreetMapin viivageometriasta (`kartta/raw/t00..t22.osm`), joten tiet ovat yhtenäisiä ja risteykset siistejä. Kartta-aineisto © OpenStreetMap contributors (ODbL) – attribuutio pitää näkyä pelissä. Google Mapsin kuvia tai dataa ei käytetä.
+
+Tiedostot:
+- `kartta/osm_vektorit.py` – lukee OSM-tiet (highway=*) ja radat (railway=rail), projisoi TM35FIN:iin (EPSG:3067) ja pikseleiksi (2048 px = 2900 m). Välimuisti `kartta/osm_vektorit_cache.json`.
+- `kartta/tiles_v2.py` – tekee `kartta/pelikentta_v2_tiles.json` (v1 ei muutu). Tien ylittämät kulkukelpoiset ruudut → `tie` (3), 4-yhtenäisinä; polut metsässä/suolla/kalliolla/puistossa → uusi maasto **13 `polku`** (move_cost 0.8, "Metsäpolku – nopeampi kuin metsä"). bridge=yes veden/moottoritien yli → `silta` (12); moottoritiesillan alikulku → `silta`. Tunneleita ei huomioida. Tukikohta-/resurssiruutuja ei tehdä esteiksi. Lopuksi BFS-tarkistus HQ:sta HQ:hon.
+- `grafiikka/generoi_kartta.py --tiles v2` (oletus) tai `--tiles v1` (vanha ruutupohjainen tiepiirto). Kirjoittaa samat tiedostot kuin ennen (`kartta/kartta_tausta.png`, palat, minikartta, debug, esikatselut) sekä `maasto/13_polku.png`.
+- `kartta/vertailu_v1_v2.png` – sama rajaus ennen/jälkeen.
+
+Ajojärjestys:
+```
+cd kartta && python3 tiles_v2.py
+cd ../grafiikka && python3 generoi_kartta.py
+```
+
+Tieluokat ja leveydet (px, reunus/asfaltti): moottoritie 31/25 (kaiteet, kaistaviivat), ramppi 13/10, pää-/kokoojatie 17/13 (katkoviiva keskellä), katu 12/9, huoltotie 8/6. Polut (footway/cycleway/path/track) piirretään luonnossa hiekka-/neulaspoluiksi (karhea reuna), kaupungissa vaaleana päällysteenä. Jalkakäytävät (footway=sidewalk) jätetään piirtämättä. Puut ja yksityiskohdat väistävät teitä, polkuja ja rataa.
+
+`debug_ruudukko.png`: esteet punaisella, polkuruudut keltaisella, sillat vihreällä.
+
+Pelikoodin muutokset: lataa `kartta/pelikentta_v2_tiles.json`, tunne maasto 13 (`polku`, move_cost 0.8, ruutukuva `maasto/13_polku.png`, minikarttaväri esim. #9c7e50).
+
+## Olennot (v4) – metsäpeikko ja vesihiisi – `python3 generoi_olennot.py`
+Importtaa apufunktiot `generoi.py`:stä, kirjoittaa vain alla luetellut tiedostot. Puolueettomia (ei tiimiväriä), katsovat OIKEALLE (koodi peilaa).
+Kehys 48x48 (1,5 ruutua), ankkuri (0.5, 0.9) = jalat / vedenpinnan rengas y≈43. Spritesheetit vaakarivejä, kehykset vasemmalta oikealle.
+Esikatselu 3x NEAREST: `esikatselu_olennot.png` (peikko metsätaustalla, hiisi + vesiefektit vesitaustalla, vertailuna lahiojermu_sininen).
+
+**Metsäpeikko** (`olennot/`):
+- `peikko.png` 48x48 staattinen (= kävelyn kehys 0), kivi kourassa.
+- `peikko_kavely.png` 192x48, 4 kehystä, raskas keinuva askel – suositus 5 fps.
+- `peikko_hyokkays.png` 192x48, 4 kehystä: k0 kiven nosto, k1 kivi pään yllä, k2 heitto (kivi irtoaa ~(42,13)), k3 jälkiliike tyhjin käsin – 8 fps, ei looppia. Ammus `efektit/kivi_8.png` lähtee kehyksessä 2.
+- `peikko_kaatunut.png` 48x48 makaa selällään, tähdet + tölkki + kivi kuvassa.
+- `peikko_karjuu.png` 96x48, 2 kehystä, suu auki + karjuntaviivat – 4 fps loop.
+- `efektit/kivi_8.png` 8x8 heitetty kivi, ankkuri keskipiste.
+
+**Vesihiisi** (`olennot/`, vedenpinta kehyksessä y=38, alaosa häipyy veteen, vesirengas piirretty kehykseen; piirrä vesiruudun päälle):
+- `vesihiisi.png` 48x48 staattinen pinnalla (= nousun kehys 5).
+- `vesihiisi_nousu.png` 288x48, 6 kehystä: pyörre -> levät -> pää -> hartiat -> ylävartalo -> koko – 8 fps, ei looppia.
+- `vesihiisi_hyokkays.png` 192x48, 4 kehystä: k0 kourat ylös, k1 syöksy, k2 isku + viillot + roiske, k3 palautus – 8 fps.
+- `vesihiisi_sukellus.png` 288x48, 6 kehystä, nousun käänteinen + loiske (k5 pelkkä rengas + pisarat) – 8 fps.
+- `efektit/kuplat_32.png` 128x32, 4 kehystä, kuplat + tumma pyörre ennakkovaroitukseksi, läpinäkyvä – 6 fps loop, ankkuri (0.5, 0.5).
+- `efektit/loiske_32.png` 128x32, 4 kehystä (pieni loiske -> pylväs -> pisarat -> rengas) – 10 fps, ankkuri (0.5, 0.75) = vedenpinta y=24.
+
+**Ikonit** (`ikonit/`): `tapahtuma_peikot.png`, `tapahtuma_vesihiisi.png` 32x32; `ui_peikko.png`, `ui_vesihiisi.png` 24x24 (rintakuvarajaus).

@@ -1,6 +1,8 @@
 # Lähiösota: Etelä-Tampere – yhtenäinen maalattu pikselitaidetausta pelikentälle (Grafiikkabotti)
-# Ajo: python3 generoi_kartta.py   (seedattu, toistettava; kesto ~1 min)
-# Pohja: ../kartta/pelikentta_v1_tiles.json, 64x64 ruutua, 32 px/ruutu -> 2048x2048.
+# Ajo: python3 generoi_kartta.py [--tiles v2|v1] [--out HAKEMISTO]   (oletus v2; seedattu, toistettava; kesto ~30 s)
+# v2: ruudukko ../kartta/pelikentta_v2_tiles.json + tiet, rata, Vt 3 ja polut suoraan OSM-viivageometriasta
+#     (../kartta/osm_vektorit.py lukee ../kartta/raw/*.osm). v1: vanha ruutupohjainen tiepiirto.
+# 64x64 ruutua, 32 px/ruutu -> 2048x2048.
 # Karttadata © OpenStreetMap contributors (ODbL).
 import os, sys, json, math, random
 import numpy as np
@@ -8,12 +10,15 @@ from PIL import Image, ImageDraw
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE)
 from generoi import outline as px_outline
 ROOT = os.path.dirname(HERE)
-OUTD = os.path.join(HERE, 'kartta'); os.makedirs(OUTD, exist_ok=True)
+def _arg(name, default):
+    return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else default
+VERSIO = _arg('--tiles', 'v2')
+OUTD = _arg('--out', os.path.join(HERE, 'kartta')); os.makedirs(OUTD, exist_ok=True)
 SEED = 1995
 T = 32; N = 64; W = T * N
-J = json.load(open(os.path.join(ROOT, 'kartta', 'pelikentta_v1_tiles.json')))
+J = json.load(open(os.path.join(ROOT, 'kartta', f'pelikentta_{VERSIO}_tiles.json')))
 G = np.array(J['terrain'], dtype=np.int16)
-RUOHO, METSA, VESI, TIE, MOOTTORI, RATA, RAKENNUS, TEOLLISUUS, PELTO, SUO, KALLIO, PUISTO, SILTA = range(13)
+RUOHO, METSA, VESI, TIE, MOOTTORI, RATA, RAKENNUS, TEOLLISUUS, PELTO, SUO, KALLIO, PUISTO, SILTA, POLKU = range(14)
 OBST = {VESI, MOOTTORI, RAKENNUS}
 R = random.Random(SEED)
 
@@ -47,7 +52,7 @@ def base_grid():
     for r in range(N):
         for c in range(N):
             t = G[r, c]
-            if t not in (TIE, RATA, SILTA): continue
+            if t not in (TIE, RATA, SILTA, POLKU): continue
             pool = natural_pass if t != SILTA else (natural_pass | {VESI, MOOTTORI})
             best = None
             for rad in (1, 2, 3, 5):
@@ -490,14 +495,162 @@ def plaza(d, col, row):
     for x in range(x0 + 6, x1 - 2, 6): d.line([(x, y0 + 3), (x, y1 - 3)], fill=C('#958f86'))
     for y in range(y0 + 6, y1 - 2, 6): d.line([(x0 + 3, y), (x1 - 3, y)], fill=C('#958f86'))
 
-# ---------------------------------------------------------------- pääohjelma
-def main():
-    global BUSH
-    BUSH = bush()
-    B = base_grid()
-    cls = classify(B)
-    img = textures(cls); shores(img, cls)
-    canvas = Image.fromarray(img, 'RGB').convert('RGBA')
+
+# ---------------------------------------------------------------- v2: OSM-vektorit
+def load_osm():
+    sys.path.insert(0, os.path.join(ROOT, 'kartta')); import osm_vektorit as OV
+    return OV.load()
+STY = {'moottoritie': (31, 25), 'ramppi': (13, 10), 'paatie': (17, 13), 'katu': (12, 9), 'huoltotie': (8, 6)}
+ORDER = ['huoltotie', 'katu', 'ramppi', 'paatie', 'moottoritie']
+ASF = {'moottoritie': '#3d3f42', 'ramppi': '#45474b', 'paatie': '#47494d', 'katu': '#4a4c50', 'huoltotie': '#55575a'}
+NATURAL = {RUOHO, METSA, SUO, KALLIO, PUISTO, PELTO}
+
+def cap_line(d, pts, w, col):
+    d.line(pts, fill=col, width=int(w), joint='curve'); r = w / 2
+    for q in (pts[0], pts[-1]): d.ellipse([q[0] - r + .5, q[1] - r + .5, q[0] + r - .5, q[1] + r - .5], fill=col)
+
+def junction_mask(V):
+    cnt = {}; pos = {}
+    for v in V:
+        if v['luokka'] in STY and not v['tunnel']:
+            for i, (n, p) in enumerate(zip(v['nodes'], v['pts'])):
+                w = 2 if i in (0, len(v['nodes']) - 1) else 1
+                cnt[n] = cnt.get(n, 0) + w; pos[n] = p
+    m = Image.new('1', (W, W), 0); d = ImageDraw.Draw(m)
+    for n, k in cnt.items():
+        if k >= 3:
+            x, y = pos[n]; d.ellipse([x - 15, y - 15, x + 15, y + 15], fill=1)
+    return np.asarray(m)
+
+def draw_paths(d, V, cls):
+    for v in V:
+        if v['luokka'] != 'polku' or v['tunnel'] or v['bridge']: continue
+        rr = random.Random(SEED + v['id'] % 100000)
+        pts = walk(v['pts'], 2)
+        nat = [(0 <= int(y) < W and 0 <= int(x) < W and cls[int(y), int(x)] in NATURAL) for (x, y, _, _) in pts]
+        for (x, y, _, _), n in zip(pts, nat):           # tumma rosoinen reuna
+            if n:
+                j = rr.uniform(-.8, .8); r = rr.choice([2.5, 3, 3]); d.ellipse([x - r + j, y - r - j, x + r + j, y + r - j], fill=C('#4a3c26'))
+        for (x, y, _, _), n in zip(pts, nat):
+            if n:
+                j = rr.uniform(-.6, .6); r = rr.choice([1.5, 2, 2]); col = rr.choice(['#a88a5a', '#b39464', '#9c7e50'])
+                d.ellipse([x - r + j, y - r - j, x + r + j, y + r - j], fill=C(col))
+            else:
+                d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=C('#8e8e88'))
+        for (x, y, _, _), n in zip(pts[::5], nat[::5]):  # neulasia / roskia polulla
+            if n and rr.random() < .5: d.point((x + rr.randint(-1, 1), y + rr.randint(-1, 1)), fill=C('#6a5434'))
+
+def draw_roads_osm(d, V, jm):
+    roads = [v for v in V if v['luokka'] in STY and not v['tunnel'] and not v['bridge']]
+    for v in roads:   # reunat ensin kaikille -> risteykset yhdistyvät siististi
+        rw, aw = STY[v['luokka']]
+        if v['luokka'] == 'moottoritie': cap_line(d, v['pts'], rw + 2, C('#2e3032')); cap_line(d, v['pts'], rw, C('#9a9c9e'))
+        elif v['luokka'] != 'huoltotie': cap_line(d, v['pts'], rw, C('#8a8a84'))
+    for k in ORDER:
+        for v in roads:
+            if v['luokka'] == k: cap_line(d, v['pts'], STY[k][1], C(ASF[k]))
+    road_markings(d, roads, jm)
+
+def road_markings(d, roads, jm):
+    for v in roads:
+        k = v['luokka']; pts = v['pts']
+        if k == 'moottoritie':
+            for o in (10, -10):
+                for (x, y, tx, ty) in walk(offset(pts, o), 1):
+                    if 0 <= int(y) < W and 0 <= int(x) < W and not jm[int(y), int(x)]: d.point((x, y), fill=C('#d8d8d0'))
+            for j, (x, y, tx, ty) in enumerate(walk(pts, 1)):
+                if (j // 4) % 3 == 0 and 0 <= int(y) < W and 0 <= int(x) < W and not jm[int(y), int(x)]: d.point((x, y), fill=C('#d8d8d0'))
+        elif k == 'paatie':
+            for j, (x, y, tx, ty) in enumerate(walk(pts, 1)):
+                if (j // 4) % 2 == 0 and 0 <= int(y) < W and 0 <= int(x) < W and not jm[int(y), int(x)]: d.point((x, y), fill=C('#d8d4c0'))
+
+def rails_osm(d, V, bridge):
+    rails = [v['pts'] for v in V if v['luokka'] == 'rata' and not v['tunnel'] and v['bridge'] == bridge]
+    for pts in rails: d.line(pts, fill=C('#5a554c'), width=20, joint='curve')
+    for pts in rails: d.line(pts, fill=C('#7d7466'), width=17, joint='curve')
+    for pts in rails:
+        for j, (x, y, tx, ty) in enumerate(walk(pts, 1)):
+            if (j * 7) % 5 == 0: d.point((x - ty * ((j * 13) % 15 - 7), y + tx * ((j * 13) % 15 - 7)), fill=C('#958a78'))
+    for pts in rails:
+        for (x, y, tx, ty) in walk(pts, 4): d.line([(x - ty * 7, y + tx * 7), (x + ty * 7, y - tx * 7)], fill=C('#4a3523'), width=2)
+    for pts in rails:
+        for o in (-4, 4): d.line(offset(pts, o + .8), fill=C('#3a3a3a'), width=1); d.line(offset(pts, o), fill=C('#b5b8bc'), width=1)
+
+def bridges_osm(d, V, jm):
+    brs = sorted([v for v in V if v['bridge'] and not v['tunnel'] and v['luokka'] in set(STY) | {'polku', 'rata', 'jalkakaytava'}], key=lambda v: v['layer'])
+    for v in brs:
+        k = v['luokka']; pts = v['pts']
+        w = 22 if k == 'rata' else (STY[k][0] if k in STY else 7)
+        sh = [(x + 3, y + 3) for x, y in pts]
+        cap_line(d, sh, w + 4, (0, 0, 0, 90))
+    for v in brs:
+        k = v['luokka']; pts = v['pts']
+        if k == 'rata':
+            d.line(pts, fill=C('#2a2a2c'), width=26, joint='curve'); d.line(pts, fill=C('#c8ccd0'), width=24, joint='curve'); d.line(pts, fill=C('#8d8f92'), width=21, joint='curve')
+        elif k in STY:
+            rw, aw = STY[k]
+            d.line(pts, fill=C('#2a2a2c'), width=rw + 5, joint='curve'); d.line(pts, fill=C('#c8ccd0'), width=rw + 3, joint='curve')
+            d.line(pts, fill=C('#8d8f92'), width=rw, joint='curve'); d.line(pts, fill=C(ASF[k]), width=aw, joint='curve')
+        else:
+            d.line(pts, fill=C('#2a2a2c'), width=9, joint='curve'); d.line(pts, fill=C('#c8ccd0'), width=7, joint='curve'); d.line(pts, fill=C('#9a7a50'), width=5, joint='curve')
+    road_markings(d, [v for v in brs if v['luokka'] in STY], jm)
+    rails_osm(d, V, True)
+
+def maasto_polku():
+    import generoi as GN
+    m = GN.noise_tile(GN.hx('#3d5f24'), .08, 13, [(GN.hx('#2f4a1c'), 40)]); d = ImageDraw.Draw(m); rr = random.Random(13)
+    pts = [(0, 22), (8, 19), (16, 15), (24, 12), (31, 10)]
+    for (x, y, _, _) in walk(pts, 1): d.ellipse([x - 3 + rr.uniform(-.6, .6), y - 3, x + 3, y + 3], fill=GN.hx('#4a3c26'))
+    for (x, y, _, _) in walk(pts, 1): d.ellipse([x - 2 + rr.uniform(-.5, .5), y - 2, x + 2, y + 2], fill=GN.hx(rr.choice(['#a88a5a', '#b39464', '#9c7e50'])))
+    for (x, y) in [(7, 9), (24, 25), (5, 29)]:
+        d.polygon([(x, y - 7), (x - 5, y + 3), (x + 5, y + 3)], fill=GN.hx('#1d3b1a')); d.polygon([(x, y - 5), (x - 3, y + 1), (x + 3, y + 1)], fill=GN.hx('#2c5426'))
+        d.point((x, y + 4), fill=GN.hx('#4a3220'))
+    m.save(os.path.join(HERE, 'maasto', '13_polku.png'))
+
+def v2_layers(canvas, cls, sites):
+    V = load_osm(); jm = junction_mask(V)
+    vm = Image.new('L', (W, W), 0); vd = ImageDraw.Draw(vm)
+    for v in V:
+        if v['tunnel'] or v['luokka'] == 'jalkakaytava': continue
+        w = 28 if v['luokka'] == 'rata' else (STY[v['luokka']][0] + 8 if v['luokka'] in STY else 11)
+        cap_line(vd, v['pts'], w, 255)
+    for (r, c) in zip(*np.nonzero(G == SILTA)): vd.rectangle([c * T - 4, r * T - 4, (c + 1) * T + 4, (r + 1) * T + 4], fill=255)
+    for (c, r) in sites: vd.rectangle([c * T - 8, r * T - 8, (c + 2) * T + 8, (r + 2) * T + 8], fill=255)
+    for r in range(N):
+        for c in range(N):
+            if G[r, c] in OBST: vd.rectangle([c * T - 2, r * T - 2, (c + 1) * T + 1, (r + 1) * T + 1], fill=255)
+    blocked = np.asarray(vm) > 0
+    details(canvas, cls, blocked, tree_sprites())
+    ov = Image.new('RGBA', (W, W), (0, 0, 0, 0)); d = ImageDraw.Draw(ov)
+    for (c, r) in sorted(sites): plaza(d, c, r)
+    draw_paths(d, V, cls)
+    draw_roads_osm(d, V, jm)
+    rails_osm(d, V, False)
+    canvas.alpha_composite(ov)
+    bl = Image.new('RGBA', (W, W), (0, 0, 0, 0)); d = ImageDraw.Draw(bl)
+    bridges_osm(d, V, jm)
+    # silta-ruudut, joille OSM-silta ei osu (v1-perintö): ruutukohtainen kansi varmuudeksi
+    a = np.asarray(bl)[..., 3] > 200
+    miss = {(r, c) for (r, c) in zip(*np.nonzero(G == SILTA)) if a[r * T:(r + 1) * T, c * T:(c + 1) * T].mean() < .2}
+    G1 = np.array(json.load(open(os.path.join(ROOT, 'kartta', 'pelikentta_v1_tiles.json')))['terrain'])
+    under = {t for t in miss if G1[t] == MOOTTORI}          # uudet alikulkuruudut moottoritiesillan alla
+    deck = miss - under
+    if deck: draw_bridges(d, deck)
+    canvas.alpha_composite(bl)
+    if under:
+        # alikulku: alittava tie näkyy moottoritien läpi varjostettuna (sillan alla), rajattuna alikulkuruutuihin
+        ul = Image.new('RGBA', (W, W), (0, 0, 0, 0)); ud = ImageDraw.Draw(ul)
+        for v in V:
+            if v['tunnel'] or v['bridge'] or v['luokka'] not in set(STY) - {'moottoritie', 'ramppi'} | {'polku'}: continue
+            rw, aw = STY.get(v['luokka'], (7, 5))
+            cap_line(ud, v['pts'], rw, C('#1e1e20')); cap_line(ud, v['pts'], aw, C('#2c2e31'))
+        mk = Image.new('L', (W, W), 0); md = ImageDraw.Draw(mk)
+        for (r, c) in under: md.rectangle([c * T, r * T, (c + 1) * T - 1, (r + 1) * T - 1], fill=255)
+        ua = np.asarray(ul).copy(); ua[..., 3] = np.minimum(ua[..., 3], np.asarray(mk))
+        canvas.alpha_composite(Image.fromarray(ua, 'RGBA'))
+    return V, miss
+
+def v1_layers(canvas, cls):
     # tiet yms. maskiin, jotta detaljit eivät mene niiden päälle
     nodes, adj, extra = road_graph()
     bridges = {(r, c) for r in range(N) for c in range(N) if G[r, c] == SILTA}
@@ -522,6 +675,21 @@ def main():
     draw_bridges(d, bridges)
     draw_rail(d, rail)
     canvas.alpha_composite(ov)
+
+# ---------------------------------------------------------------- pääohjelma
+def main():
+    global BUSH
+    BUSH = bush()
+    B = base_grid()
+    cls = classify(B)
+    img = textures(cls); shores(img, cls)
+    canvas = Image.fromarray(img, 'RGB').convert('RGBA')
+    sites = {(b['col'], b['row']) for b in J['bases']} | {(b['col'], b['row']) for b in J['resources']}
+    if VERSIO == 'v2':
+        V, miss = v2_layers(canvas, cls, sites); maasto_polku()
+        print('silta-ruutuja ilman OSM-siltaa (piirretty ruutukansi):', sorted(miss))
+    else:
+        v1_layers(canvas, cls)
     ov = Image.new('RGBA', (W, W), (0, 0, 0, 0)); d = ImageDraw.Draw(ov)
     skip = {(r + dr, c + dc) for (c, r) in sites for dr in (0, 1) for dc in (0, 1)}
     draw_buildings(d, skip)
@@ -541,6 +709,7 @@ def main():
         for c in range(N):
             if G[r, c] in OBST: od.rectangle([c * T, r * T, (c + 1) * T - 1, (r + 1) * T - 1], fill=(255, 0, 0, 80))
             elif G[r, c] == SILTA: od.rectangle([c * T, r * T, (c + 1) * T - 1, (r + 1) * T - 1], fill=(0, 255, 0, 70))
+            elif G[r, c] == POLKU: od.rectangle([c * T, r * T, (c + 1) * T - 1, (r + 1) * T - 1], fill=(255, 220, 0, 80))
     for k in range(N + 1):
         od.line([(k * T, 0), (k * T, W)], fill=(255, 255, 255, 60)); od.line([(0, k * T), (W, k * T)], fill=(255, 255, 255, 60))
     dbg.alpha_composite(o); dbg.convert('RGB').save(f'{OUTD}/debug_ruudukko.png', optimize=True)

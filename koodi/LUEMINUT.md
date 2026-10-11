@@ -77,3 +77,9 @@ Sumu (fog of war), kartan räjähtävät rakennukset (St1/Gasum), tasapainotus.
 - Odotetut assetit: `/workspace/peli/ASSET_LISTA.md`.
 
 Karttadata © OpenStreetMap-tekijät (ODbL).
+
+## V3: metsäpeikot ja vesihiisi
+- Kartta: `kartta/pelikentta_v2_tiles.json` (maastotyyppi 13 = metsäpolku, move_cost 0.8).
+- **Metsäpeikot** (puolueettomia, owner 3): ensimmäiset noin 2,5 min kohdalla ja sen jälkeen 70–120 s välein, enintään 3 kerrallaan, metsään vähintään 12 ruudun päähän päämajoista. Ne vaeltavat lähellä kotiaan, heittelevät kiviä, varastavat tölkkikuormia ja karjaisevat, jolloin lähellä olevat jalkaväet pakenevat. Jos peikkoon osuu, se suuttuu ampujalle. Kaatunut peikko pudottaa 6 tölkkiä ja kaikki varastamansa.
+- **Vesihiisi**: noin 3,3 min kohdalla ja sen jälkeen 45–80 s välein valitsee lammen tai järven rantaruudun, jonka lähellä (≤ 3 ruutua) on joukkoja. Ensin 4 s kuplia, sihinää ja varoitus, sitten se nousee 14 sekunniksi, iskee kaikkia 3 ruudun säteellä ja sukeltaa. Ampua voi, lähitaistelijat eivät pääse veteen.
+- Molemmista tulee banneri, karttamerkki ja puhekuplahuudot. Testaus harjoituksessa: `__lahiosota.send({t:'debug', olento:'peikot'})` tai `olento:'vesihiisi'`.
