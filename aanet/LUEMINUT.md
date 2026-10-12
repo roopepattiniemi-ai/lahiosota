@@ -93,3 +93,15 @@ Peikko:
 - `sfx_peikko_kivi_heitto` + `sfx_peikko_kivi_osuma`, `sfx_peikko_askel`, `sfx_peikko_kaatuu`
 - huudot: `aani_peikko_` + `mun_metsa`, `tolkit` (varastaa kuorman), `pois` (pelotus), `nalka`
 Tapahtumat: `aani_tapahtuma_peikot`, `aani_tapahtuma_vesihiisi` (jinglen jälkeen kuten muut).
+
+## V4 (generoi_aanet_v4.py)
+- `sfx_bileet_loop` – kotibileiden jumputus ja meteli seinän läpi, `loop: true` (7,7 s)
+- `sfx_naapurit_valittaa` – kattoon kopautus "Naapurit valittaa!" -varoitukseen
+- `sfx_haato` – ovi aukeaa, porukka lentää ulos, ovi paukahtaa
+- poliisipiiritys: vanha `sfx_poliisi_sireeni`
+- `sfx_sauna_loyly` – löylyn sihahdus
+- pihagrilli: vanha `sfx_grilli_kary` (sihinä)
+- `sfx_lumimyrsky_loop` – tuulen ulvonta, `loop: true` (8 s)
+- `sfx_tekstiviesti` – vanhan kännykän viestipiippaus kännitekstarille
+- `sfx_hemuli_muodonmuutos` – Hemulista puolijumala/Caesar (~3 s)
+- `sfx_pallo_potku` + `sfx_pallo_osuma` – Vänän potku ja osuma

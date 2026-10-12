@@ -78,3 +78,54 @@ const run = (g, s) => { for (let i = 0; i < s * 10; i++) { g.step(); g.snapshot(
   for (let i = 0; i < 160; i++) { g.step(); ev = ev.concat(g.snapshot().ev); }
   assert(ev.some(e => e.e === 'ammus' && e.w === 'hiisi'), 'hiisi hyökkäsi rannalla olevaan');
   assert(ev.some(e => e.e === 'hiisi_sukelsi') || !g.units.has(h.id), 'hiisi sukelsi takaisin'); }
+
+// 9. v4: kerrostalot, sauna, grilli, mummo, kirppis, lumimyrsky, tekstarit, hemuli, vänä
+{ const g = new Game(MAP, { seed: 9, firstEvent: 1e9, firstPeikko: 1e9, firstHiisi: 1e9 });
+  const B = t => g.buildings.filter(b => b.tyyppi === t), evs = [], runE = s => { for (let i = 0; i < s * 10; i++) { g.step(); evs.push(...g.snapshot().ev); } };
+  assert(B('kerrostalo').length >= 2 && B('sauna').length && B('pihagrilli').length && B('kirppu').length, 'v4-rakennukset sijoitettu (' + B('kerrostalo').length + ' kerrostaloa)');
+  const kt = B('kerrostalo')[0]; kt.owner = 1;
+  const js = []; for (let i = 0; i < 4; i++) js.push(g._spawnUnitNear(1, 'lahiojermu', kt.x, kt.y + 2));
+  g.command(1, { t: 'order', ids: js.map(u => u.id), x: kt.x, y: kt.y }); runE(4);
+  assert(kt.sisalla.length === 4 && js.every(u => !g.units.has(u.id)), 'jalkaväki meni kerrostaloon (' + kt.sisalla.length + ')');
+  assert(evs.some(e => e.e === 'bileet'), 'kotibileet alkoivat'); runE(18);
+  assert(evs.some(e => e.e === 'naapurit') && evs.some(e => e.e === 'haato') && js.every(u => g.units.has(u.id) && u.k >= 80 && u.slow > 0), 'naapurit valittaa -> häätö kännissä (' + js.map(u => [g.units.has(u.id), Math.round(u.k), Math.round(u.slow)]).join(' ') + ')');
+  const e2 = g._spawnUnitNear(2, 'tolkkijussi', kt.x, kt.y + 3); kt.sisalla = js.slice(0, 2); js.slice(0, 2).forEach(u => g.units.delete(u.id)); evs.length = 0; runE(3);
+  assert(evs.some(e => e.e === 'ammus' && js.slice(0, 2).some(j => j.id === e.id)), 'talosta ammutaan');
+  g.command(1, { t: 'tyhjenna', b: kt.id }); assert(!kt.sisalla.length, 'Tyhjennä talo toimii'); g._remove(e2);
+  kt.sisalla = js.slice(); for (let i = 0; i < 2; i++) kt.sisalla.push(g._spawnUnitNear(1, 'tolkkijussi', 1, 1)); kt.sisalla.forEach(u => g.units.delete(u.id)); evs.length = 0; runE(5);
+  assert(evs.some(e => e.e === 'piiritys') && evs.filter(e => e.e === 'putkaan').length === 6 && !kt.sisalla.length, 'poliisipiiritys vei 6 putkaan');
+  // sauna
+  const sa = B('sauna')[0]; const s1 = g._spawnUnitNear(2, 'lahiojermu', sa.x, sa.y + 2); s1.k = 80; s1.hp = 30;
+  g.command(2, { t: 'order', ids: [s1.id], x: sa.x, y: sa.y }); runE(6);
+  assert(s1.state === 'sauna' && s1.k < 50 && s1.hp > 30, 'sauna: selviää ja paranee (k=' + Math.round(s1.k) + ')'); runE(23);
+  assert(s1.stun > 0, 'sauna: yli 25 s -> sammui');
+  // grilli
+  const gr = B('pihagrilli')[0]; gr.owner = 1; gr.grilliT = 0.5; const gj = g._spawnUnitNear(1, 'lahiojermu', gr.x, gr.y + 2); evs.length = 0; runE(1);
+  assert(evs.some(e => e.e === 'paljastus' && e.team === 1 && e.ids.includes(gj.id)), 'pihagrilli paljastaa sijainnin');
+  // mummo + lahjonta
+  const m = [...g.units.values()].find(u => u.type === 'pullomummo'); const mj = g._spawnUnitNear(1, 'tolkkijussi', m.x + 1, m.y); mj.carry = 4; mj.stun = 0;
+  g.command(1, { t: 'order', ids: [mj.id], x: m.x, y: m.y - 0.15 }); runE(3);
+  assert(m.lahjottu === 1 && mj.carry === 0, 'mummo lahjottu tölkeillä');
+  g.cans.clear(); const cid = g.nextId++; g.cans.set(cid, { id: cid, x: m.x + 0.5, y: m.y, n: 5 }); m.tgt = null; const r0 = g.players[1].money; runE(4);
+  assert(g.players[1].money >= r0 + 50 && evs.some(e => e.e === 'mummo_raha'), 'lahjottu mummo muuttaa tölkit rahaksi');
+  // kirppis
+  const ki = B('kirppu')[0]; const kj = g._spawnUnitNear(1, 'tolkkijussi', ki.x, ki.y + 2); kj.carry = 3; evs.length = 0;
+  g.command(1, { t: 'order', ids: [kj.id], x: ki.x, y: ki.y }); runE(4);
+  assert(kj.carry === 0 && evs.some(e => e.e === 'esine' && e.id === kj.id), 'kirpputori: 3 tölkkiä -> esine');
+  kj.esine = 'lenkkarit'; const sp1 = g._speed(kj); kj.esine = 0; assert(sp1 > g._speed(kj), 'lenkkarit nopeuttavat');
+  // lumimyrsky
+  const la = g._spawnUnitNear(1, 'lada', 20, 40), mo = g._spawnUnitNear(1, 'monkija', 20, 40), sj0 = g._speed(kj), mo0 = g._speed(mo); g.startEvent('lumimyrsky');
+  assert(g._speed(la) === 0 && Math.abs(g._speed(kj) / sj0 - 0.6) < 0.01 && Math.abs(g._speed(mo) / mo0 - 0.9) < 0.01, 'lumimyrsky hidastaa, Lada jumissa'); g._endEvent();
+  // tekstari
+  g.tekstariP = 1; const tj = g._spawnUnitNear(2, 'lahiojermu', 30, 12); tj.k = 100; tj.ktila = 3; evs.length = 0; runE(6); g.tekstariP = 0;
+  assert(evs.some(e => e.e === 'tekstari') && evs.some(e => e.e === 'paljastus' && e.team === 2 && e.aika === 8), 'kännitekstari paljastaa joukkueen');
+  // hemuli
+  const he = [...g.units.values()].find(u => u.type === 'hemuli'); g.caesarP = 1; he.state = 'syo'; he.aiT = 0.1; runE(0.3);
+  assert(he.type === 'hemuli_caesar' && he.owner === 3 && evs.some(e => e.e === 'muodonmuutos'), 'hemulista tuli Caesar');
+  const hv = g._spawnUnitNear(1, 'tolkkijussi', he.x + 1, he.y); evs.length = 0; runE(3);
+  assert(evs.some(e => e.e === 'ammus' && e.id === he.id), 'Caesar hyökkää'); runE(30);
+  assert(he.type === 'hemuli' && he.owner === 0, 'Caesar palasi hemuliksi');
+  // vänä
+  const va = [...g.units.values()].find(u => u.type === 'vana'); va.ai = 'kanni'; va.aiT = 30; va.cd = 0; const vt = g._spawnUnitNear(2, 'tolkkijussi', va.x + 2, va.y); vt.hp = 40; evs.length = 0; runE(1);
+  assert(evs.some(e => e.e === 'ammus' && e.w === 'pallo'), 'Vänä potkaisi palloa');
+}

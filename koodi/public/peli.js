@@ -8,10 +8,10 @@ const TERRAIN_FILES = ['00_ruoho', '01_metsa', '02_vesi', '03_tie', '04_moottori
 const MINI_COLORS = ['#4d7a35', '#2b4d22', '#2d5a8c', '#777', '#555', '#6b5a48', '#8a8a8a', '#666158', '#9a9a4a', '#4f5f3a', '#7a7066', '#5f9a45', '#8a6a3a', '#9c7e50'];
 const EXTRA_BUILDINGS = { 'PIZZATEHDAS': 'pizzatehdas', 'KARKKIKAIVOS': 'karkkikaivos', 'LÄÄKINTÄASEMA': 'laakintaasema', 'TIEDUSTELUKESKUS': 'tiedustelukeskus',
   'KAHVILÄHDE': 'kahvilahde', 'PERUNAPELTO': 'perunapelto', 'HUOLTOVARIKKO': 'huoltovarikko', 'ROMUTARVIKEVARASTO': 'romutarvikevarasto',
-  'POLTTOAINEVARASTO': 'polttoainevarasto', 'KAASUVARASTO': 'kaasuvarasto', 'LIHAPULLALINNAKE': 'lihapullalinnake' };
+  'POLTTOAINEVARASTO': 'polttoainevarasto', 'KAASUVARASTO': 'kaasuvarasto', 'LIHAPULLALINNAKE': 'lihapullalinnake', 'Sauna': 'sauna', 'Pihagrilli': 'pihagrilli', 'Kirpputori': 'kirpputori' };
 let TRAIN_KEYS = {}; // täytetään yksikkötyypeistä (nappi-kenttä) omalle puolelle
 const WEAPON_SFX = { rk62: 'sfx_laukaus_rk62', jatimatic: 'sfx_laukaus_jatimatic', emma: 'sfx_laukaus_emma', suomikp: 'sfx_laukaus_suomikp', puukko: 'sfx_puukko',
-  parveke: 'sfx_parveke_ampuu', trimmeri: 'sfx_trimmeri', grilli: 'sfx_grilli_ampuu', kivi: 'sfx_peikko_kivi_heitto', hiisi: 'sfx_vesihiisi_hyokkays' };
+  parveke: 'sfx_parveke_ampuu', trimmeri: 'sfx_trimmeri', grilli: 'sfx_grilli_ampuu', kivi: 'sfx_peikko_kivi_heitto', hiisi: 'sfx_vesihiisi_hyokkays', pallo: 'sfx_pallo_potku', salama: 'sfx_vesihiisi_hyokkays' };
 const MOVE_SFX = { mopopoika: 'sfx_mopo', dnepr: 'sfx_dnepr', volvo: 'sfx_volvo', monkija: 'sfx_monkija', lada: 'sfx_lada', mummo: 'sfx_rollaattori' };
 const VOICES = {
   tolkkijussi: ['valittu', 'kuittaus_1', 'kuittaus_2', 'kuittaus_3', 'baariin'],
@@ -44,9 +44,11 @@ KUPLAT.tolkit = [['TÖLKIT TÄNNE!', 'Mun tölkit!', 'Kilisee... MUN!'], ['aani_
 KUPLAT.pois = [['POIS!', 'HÄIPYKÄÄ!', 'RAAAAH!'], ['aani_peikko_pois', 'sfx_peikko_karjunta_2']];
 KUPLAT.nalka = [['Peikolla nälkä...', 'Mmm... jermu...', 'Grrr...'], ['aani_peikko_nalka', 'sfx_peikko_murina_1', 'sfx_peikko_murina_2', 'sfx_peikko_murina_3']];
 KUPLAT.hiisi = [['Tulkaa syvyyksiin...', 'Sssssss...', 'Vesi on lämmintä...', 'SSSHHHH!'], ['aani_vesihiisi_tulkaa', 'aani_vesihiisi_syvyyksiin', 'aani_vesihiisi_sss', 'sfx_vesihiisi_sihina_1', 'sfx_vesihiisi_sihina_2', 'sfx_vesihiisi_sihina_3']];
+KUPLAT.tekstari = [['Ootsä hereil? <3', 'Mä vieläki rakastan sua', 'Muistaksä meiän kesän?', 'Sori siitä... soita'], ['sfx_tekstiviesti']];
+KUPLAT.vana = [['TÄNNE SE PALLO!', 'Maali!', 'Vänä potkii!'], ['sfx_pallo_potku']];
 const olentoMerkki = {}; // id -> merkin loppuaika
-const PAKKO = { hiisi: 1, sammui: 1, kotiin: 1, putkaan: 1, laatta: 1 }; // nämä ohittavat 8 s rajan
-const STATE_FI = { board: 'nousee kyytiin', molotovi: 'heittää molotovia', jono: 'Alkon jonossa',  idle: 'odottaa', move: 'liikkuu', attack: 'hyökkää', collect: 'kerää tölkkejä', return: 'vie pantteja', gohome: 'palaa keräämään', tobar: 'lähti baariin!', sammunut: 'SAMMUNUT' };
+const PAKKO = { tekstari: 1, hiisi: 1, sammui: 1, kotiin: 1, putkaan: 1, laatta: 1 }; // nämä ohittavat 8 s rajan
+const STATE_FI = { board: 'nousee kyytiin', molotovi: 'heittää molotovia', jono: 'Alkon jonossa',  idle: 'odottaa', move: 'liikkuu', attack: 'hyökkää', collect: 'kerää tölkkejä', return: 'vie pantteja', gohome: 'palaa keräämään', tobar: 'lähti baariin!', sammunut: 'SAMMUNUT', talo: 'menee kerrostaloon', tosauna: 'menee saunaan', sauna: 'SAUNASSA (ei puolusta)', kirppu: 'menee kirpputorille', lahjo: 'lahjoo mummoa', syo: 'syö kasveja' };
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -65,7 +67,8 @@ function loadAssets() {
   const p = [];
   TERRAIN_FILES.forEach((f, i) => p.push(loadImg('t' + i, '/grafiikka/maasto/' + f + '.png')));
   for (const [k, n] of [['peikko', 1], ['peikko_kavely', 4], ['peikko_hyokkays', 4], ['peikko_karjuu', 2], ['peikko_kaatunut', 1], ['vesihiisi', 1], ['vesihiisi_nousu', 6], ['vesihiisi_hyokkays', 4], ['vesihiisi_sukellus', 6]]) p.push(loadImg('o_' + k, `/grafiikka/olennot/${k}.png`));
-  for (const k of ['kivi_8', 'kuplat_32', 'loiske_32']) p.push(loadImg('fx_' + k, `/grafiikka/efektit/${k}.png`));
+  for (const k of ['hemuli', 'hemuli_kavely', 'hemuli_syo', 'hemuli_caesar', 'hemuli_caesar_kavely', 'hemuli_caesar_hyokkays', 'vana', 'vana_kavely', 'vana_potku', 'pullomummo', 'pullomummo_kavely']) p.push(loadImg('o_' + k, `/grafiikka/olennot/${k}.png`));
+  for (const k of ['kivi_8', 'kuplat_32', 'loiske_32', 'jalkapallo_8', 'lumi_64', 'poliisipiiritys_64']) p.push(loadImg('fx_' + k, `/grafiikka/efektit/${k}.png`));
   for (const k of ['peikot', 'vesihiisi']) p.push(loadImg('tap_' + k, `/grafiikka/ikonit/tapahtuma_${k}.png`));
   for (const [u, t] of Object.entries(map.unitTypes)) {
     if (t.olento) continue;
@@ -235,6 +238,7 @@ function handleEvent(e) {
       shootT[e.id] = performance.now();
       if (e.roiske) effects.push({ arc: true, x: e.x, y: e.y, tx: e.tx, ty: e.ty, t: 0.8, t0: 0.8, img: 'fx_makkara_8' });
       else if (e.w === 'kivi') effects.push({ arc: true, x: e.x, y: e.y - 0.6, tx: e.tx, ty: e.ty, t: 0.5, t0: 0.5, img: 'fx_kivi_8', spin: true, osuu: e.hit && vis ? 'sfx_peikko_kivi_osuma' : null });
+      else if (e.w === 'pallo') effects.push({ arc: true, x: e.x, y: e.y - 0.2, tx: e.tx, ty: e.ty, t: 0.5, t0: 0.5, img: 'fx_jalkapallo_8', spin: true, osuu: e.hit && vis ? 'sfx_pallo_osuma' : null });
       else if (e.w === 'hiisi') effects.push({ splash: true, x: e.tx, y: e.ty, t: 0.4, t0: 0.4 });
       else if (e.w === 'grilli') effects.push({ arc: true, x: e.x, y: e.y, tx: e.tx, ty: e.ty, t: 0.35, t0: 0.35, img: 'fx_makkara_8', kary: true });
       else if (!e.lahi) effects.push({ x: e.x, y: e.y, tx: e.tx, ty: e.ty, hit: e.hit, t: 0.12, c: e.owner === 1 ? '#9cf' : '#f99', flash: true });
@@ -256,6 +260,20 @@ function handleEvent(e) {
       if (e.tila === 'laatta' && (mine || vis)) setTimeout(() => snd('sfx_laatta_latsahdys', 0.6, 200), 700); break;
     case 'palasi': if (mine) log(e.sauna ? 'Saunojat palasivat terästettyinä (+30 % vahinko)!' : 'Kokous loppui, joukot palasivat.'); break;
     case 'tapahtuma': onTapahtuma(e); break;
+    case 'taloon': if (mine) log(`Yksikkö meni kerrostaloon (${e.n}/6).`); break;
+    case 'talosta': if (mine) log(`${e.n} yksikköä tuli ulos kerrostalosta.`); break;
+    case 'bileet': if (mine) log('Kerrostalossa alkoi kotibileet! (4–5 sisällä)', 'tapahtuma'); break;
+    case 'naapurit': snd('sfx_naapurit_valittaa', 0.8, 100); if (mine) log('Naapurit valittaa! Häätö tulossa...', 'punainen'); break;
+    case 'haato': snd('sfx_haato', 0.8, 100); if (mine) log('HÄÄTÖ! Bilettäjät heitettiin ulos sikakännissä.', 'punainen'); break;
+    case 'piiritys': snd('sfx_poliisi_sireeni', 0.8, 100); if (mine) log('POLIISIPIIRITYS! 6 hengen bileet kerrostalossa – kaikki putkaan!', 'punainen'); break;
+    case 'sauna': if (mine && vis) snd('sfx_sauna_loyly', 0.6, 400); break;
+    case 'esine': bubbleTxt(e.id, `Löysin: ${e.nimi}!`, e.x, e.y); if (mine) log(`Kirpputori: ${e.nimi}${e.hyoty ? ' (hyödyllinen!)' : ' (turha krääsä)'}`); break;
+    case 'lahjonta': bubbleTxt(e.id, 'Kiitos kultaseni!', e.x, e.y); if (mine) log(`Mummo lahjottu ${e.n} tölkillä: 60 s hänen keräämänsä tölkit ovat teidän rahaa!`); break;
+    case 'mummo_raha': if (mine) floaters.push({ x: e.x, y: e.y - 1, t: 1.5, txt: `+${e.raha} € (mummo)`, c: '#e8c33a' }); break;
+    case 'tekstari': bubble(e.id, 'tekstari', e.x, e.y, mine || vis); if (mine) log('Kännitekstari exälle! Koko joukkueen sijainti paljastui 8 s.', 'punainen'); break;
+    case 'paljastus': if (e.team !== myTeam) { for (const id of e.ids) olentoMerkki[id] = performance.now() + e.aika * 1000; log(`Vihollisen sijainti paljastui (${e.syy})!`, 'tapahtuma'); } else if (e.syy === 'pihagrilli') { snd('sfx_grilli_kary', 0.5, 2000); log('Grillin käry paljasti sijaintinne!', 'punainen'); } break;
+    case 'muodonmuutos': snd('sfx_hemuli_muodonmuutos', 0.9, 100); olentoMerkki[e.id] = performance.now() + 8000; onTapahtuma({ key: 'caesar', nimi: e.nimi, teksti: e.teksti, koskee: 0 }); break;
+    case 'caesar_loppui': log('Caesar muuttui takaisin Hemuliksi.', 'tapahtuma'); break;
     case 'olento': olentoMerkki[e.id] = performance.now() + 10000; onTapahtuma(e);
       if (e.key === 'vesihiisi') { effects.push({ splash: true, x: e.x, y: e.y, t: 0.5, t0: 0.5 }); snd('sfx_vesihiisi_nousu', 0.8, 100); } break;
     case 'hiisi_kuplat': onVaroitus({ teksti: e.teksti, koskee: 0, sekunnit: 4 }); snd('sfx_vesihiisi_ennakko', vis ? 0.8 : 0.4, 100); break;
@@ -285,6 +303,7 @@ function handleEvent(e) {
     case 'voitto': gameOver = true; show(e.winner === myTeam ? 'VOITTO!<br><small>Vihollisen päämaja on tuhottu.</small>' : 'TAPPIO<br><small>Päämajasi tuhottiin.</small>'); break;
   }
 }
+function bubbleTxt(id, txt, x, y) { if (bubbles.length >= 6) bubbles.shift(); bubbles.push({ id, x, y, txt, t: 3, t0: 3 }); }
 function bubble(id, tila, x, y, withSound) {
   const def = KUPLAT[tila]; if (!def) return;
   const now = performance.now();
@@ -390,7 +409,7 @@ function updatePanel() {
       const u = us[0], t = map.unitTypes[u[1]];
       v.innerHTML = `<b>${t.nimi}</b> <small>(${STATE_FI[u[8]] || u[8]})</small><br>HP ${u[5]}/${t.hp}<div class="mittari"><div style="width:${u[5] / t.hp * 100}%;background:#4c4"></div></div>` +
         `Kännimittari ${u[6]} %<div class="mittari"><div style="width:${u[6]}%;background:${kColor(u[6])}"></div></div>` +
-        `<small>${kText(u[6])}</small>` + (t.kantaa ? `<br>Tölkkejä: ${u[7]}/${t.kantaa}` : '') + (t.kyyti ? `<br>Kyydissä: ${u[10]}/${t.kyyti}` : '') + (t.ase ? `<br><small>Ase: ${t.ase.nimi}</small>` : '') + (u[11] & 2 ? '<br><small>Terästetty (+30 %)</small>' : '') + (u[11] & 1 ? '<br><small>Hidastettu</small>' : '');
+        `<small>${kText(u[6])}</small>` + (t.kantaa ? `<br>Tölkkejä: ${u[7]}/${t.kantaa}` : '') + (t.kyyti ? `<br>Kyydissä: ${u[10]}/${t.kyyti}` : '') + (t.ase ? `<br><small>Ase: ${t.ase.nimi}</small>` : '') + (u[11] & 2 ? '<br><small>Terästetty (+30 %)</small>' : '') + (u[11] & 1 ? '<br><small>Hidastettu</small>' : '') + (u[12] ? `<br><small>Esine: ${u[12]}</small>` : '');
     } else {
       const cnt = {}; us.forEach(u => cnt[u[1]] = (cnt[u[1]] || 0) + 1);
       const avgK = Math.round(us.reduce((a, u) => a + u[6], 0) / us.length);
@@ -400,7 +419,9 @@ function updatePanel() {
   } else if (selBuilding) {
     const b = buildingsById[selBuilding], s = cur.b.find(x => x[0] === b.id);
     v.innerHTML = `<b>${b.nimi}</b><br><small>${b.osm}</small><br>Omistaja: <span class="${TEAM[s[1]].vari || ''}">${TEAM[s[1]].nimi}</span>` +
-      (b.maxhp ? `<br>HP ${s[4]}/${b.maxhp}` : '') + (s[3] > 0 ? `<br>Valtaus (${TEAM[s[2]].nimi}): ${Math.round(s[3] * 100)} %` : '') + `<br><small>${b.kuvaus}</small>`;
+      (b.maxhp ? `<br>HP ${s[4]}/${b.maxhp}` : '') + (s[3] > 0 ? `<br>Valtaus (${TEAM[s[2]].nimi}): ${Math.round(s[3] * 100)} %` : '') + `<br><small>${b.kuvaus}</small>` +
+      (b.tyyppi === 'kerrostalo' ? `<br>Sisällä: ${s[6]}/6` + (s[1] === myTeam && s[6] ? `<br><button data-tyhjenna="${b.id}">Tyhjennä talo</button>` : '') : '');
+    if (!v._v4) { v._v4 = true; v.addEventListener('mousedown', ev => { const id = ev.target && ev.target.dataset && ev.target.dataset.tyhjenna; if (id) sendCmd({ t: 'tyhjenna', b: +id }); }); }
   } else v.innerHTML = '<small>Valitse yksiköitä hiirellä. Oikea klikkaus antaa käskyn.</small>';
 }
 function kColor(k) { return k < 20 ? '#8c8' : k < 60 ? '#ec3' : k < 85 ? '#f80' : '#f22'; }
@@ -625,6 +646,11 @@ function draw(dt) {
     ctx.fillStyle = 'rgba(20,30,60,.25)'; ctx.fillRect(0, 0, viewW(), viewH());
     if (im) for (let yy = -64 + off; yy < viewH(); yy += 64) for (let xx = -64 + off / 3; xx < viewW(); xx += 64) ctx.drawImage(im, xx, yy);
   }
+  const snowOn = cur.tap && cur.tap.key === 'lumimyrsky';
+  loopSnd('sfx_lumimyrsky_loop', snowOn, 0.35);
+  if (snowOn) { const im = IMG.fx_lumi_64, off = (nowMs / 6) % 64; ctx.fillStyle = 'rgba(230,240,255,.18)'; ctx.fillRect(0, 0, viewW(), viewH());
+    if (im) for (let yy = -64 + off; yy < viewH(); yy += 64) for (let xx = -64 + off; xx < viewW(); xx += 64) ctx.drawImage(im, xx, yy); }
+  loopSnd('sfx_bileet_loop', cur.b.some(x => x[7] & 1), 0.3);
   // humalakuplat
   ctx.font = `bold ${Math.round(11 * Math.min(z, 1.5))}px "Courier New", monospace`;
   for (let i = bubbles.length - 1; i >= 0; i--) {
@@ -653,12 +679,16 @@ function drawBuilding(b) {
   const s = cur.b.find(x => x[0] === b.id); const owner = s[1];
   const [x, y] = toScreen(b.col, b.row);
   // omistajan merkki maassa
-  ctx.fillStyle = TEAM[owner].css + '55'; ctx.fillRect(x - 2, y - 2, 2 * S + 4, 2 * S + 4);
+  ctx.fillStyle = (owner ? TEAM[owner].css : '#999999') + '55'; ctx.fillRect(x - 2, y - 2, 2 * S + 4, 2 * S + 4);
   ctx.strokeStyle = TEAM[owner].css; ctx.lineWidth = 2; ctx.strokeRect(x - 2, y - 2, 2 * S + 4, 2 * S + 4);
   let im = null;
   if (b.tyyppi === 'paamaja') im = IMG['paamaja_' + (owner === 2 ? 'punainen' : 'sininen')];
   else if (b.tyyppi === 'kmarket') im = IMG.kmarket; else if (b.tyyppi === 'baari') im = IMG.baari; else im = IMG['b_' + EXTRA_BUILDINGS[b.nimi]];
-  if (im) ctx.drawImage(im, x, y, 2 * S, 2 * S);
+  if (b.tyyppi === 'kerrostalo') {
+    if (s[6]) { ctx.fillStyle = 'rgba(0,0,0,.7)'; ctx.fillRect(x + S - 12 * z, y + S - 8 * z, 24 * z, 14 * z); ctx.fillStyle = '#ff0'; ctx.font = `bold ${10 * z}px monospace`; ctx.textAlign = 'center'; ctx.fillText(s[6] + '/6', x + S, y + S + 3 * z); ctx.textAlign = 'left'; }
+    if (s[7] & 1 && Math.floor(performance.now() / 250) % 2) { ctx.fillStyle = 'rgba(255,0,200,.25)'; ctx.fillRect(x, y, 2 * S, 2 * S); }
+    if (s[7] & 2 && IMG.fx_poliisipiiritys_64) ctx.drawImage(IMG.fx_poliisipiiritys_64, (Math.floor(performance.now() / 250) % 4) * 64, 0, 64, 64, x, y, 2 * S, 2 * S);
+  } else if (im) ctx.drawImage(im, x, y, 2 * S, 2 * S);
   else { // placeholder
     ctx.fillStyle = '#5a5248'; ctx.fillRect(x + 4 * z, y + 10 * z, 2 * S - 8 * z, 2 * S - 12 * z);
     ctx.fillStyle = '#3a342e'; ctx.fillRect(x + 2 * z, y + 6 * z, 2 * S - 4 * z, 6 * z);
@@ -714,18 +744,21 @@ function drawUnit(u, ux, uy) {
 function drawOlento(u, x, y, z, sel, t, ux, uy) {
   const now = performance.now();
   const shooting = shootT[u[0]] && now - shootT[u[0]] < 500;
-  const P = u[1] === 'peikko' ? 'o_peikko' : 'o_vesihiisi';
+  const P = 'o_' + u[1];
   let im = IMG[P], nfr = 1, fr = 0;
-  const st = (n, ms, loop = true) => { const k = IMG[P + n]; if (!k) return; im = k; nfr = Math.round(k.width / 48); fr = loop ? Math.floor(now / ms) % nfr : Math.min(nfr - 1, Math.floor((now - (shootT[u[0]] || now)) / ms)); };
+  const st = (n, ms, loop = true) => { const k = IMG[P + n]; if (!k) return; im = k; nfr = Math.round(k.width / k.height); fr = loop ? Math.floor(now / ms) % nfr : Math.min(nfr - 1, Math.floor((now - (shootT[u[0]] || now)) / ms)); };
   if (u[8] === 'nousu') { im = IMG.o_vesihiisi_nousu || im; nfr = 6; fr = Math.min(5, Math.floor((now - (spawnT[u[0]] || (spawnT[u[0]] = now))) / 125)); }
   else if (shooting) st('_hyokkays', 125, false);
   else if (u[8] === 'karjuu') st('_karjuu', 250);
-  else if (u[8] === 'move' && u[1] === 'peikko') st('_kavely', 200);
+  else if (shooting && u[1] === 'vana') st('_potku', 125, false);
+  else if (u[8] === 'syo') st('_syo', 333);
+  else if (u[8] === 'move' && u[1] !== 'vesihiisi') st('_kavely', 180);
+  const fs = im ? im.height : 48;
   ctx.save(); ctx.translate(x, y); if (u[9] < 0) ctx.scale(-1, 1);
-  if (im) ctx.drawImage(im, fr * 48, 0, 48, 48, -24 * z, -43 * z, 48 * z, 48 * z);
+  if (im) ctx.drawImage(im, fr * fs, 0, fs, fs, -fs / 2 * z, -fs * 0.9 * z, fs * z, fs * z);
   else { ctx.fillStyle = u[1] === 'peikko' ? '#4a6a2a' : '#2a6a7a'; ctx.fillRect(-10 * z, -30 * z, 20 * z, 28 * z); }
   ctx.restore();
-  if (sel || u[5] < t.hp) bar(x - 14 * z, y - 46 * z, 28 * z, u[5] / t.hp, '#c6f');
+  if (u[2] && (sel || u[5] < t.hp)) bar(x - 14 * z, y - 46 * z, 28 * z, u[5] / t.hp, '#c6f');
 }
 const spawnT = {};
 
@@ -741,6 +774,7 @@ function drawMini() {
   for (const b of map.buildings) { const s = cur.b.find(x => x[0] === b.id); mctx.fillStyle = TEAM[s[1]].css; mctx.fillRect(b.col * f, b.row * f, 2 * f, 2 * f); mctx.strokeStyle = '#fff'; mctx.lineWidth = 1; mctx.strokeRect(b.col * f, b.row * f, 2 * f, 2 * f); }
   mctx.fillStyle = '#ddd'; for (const c of cur.c) mctx.fillRect(c[1] * f - 1, c[2] * f - 1, 2, 2);
   for (const u of cur.u) { mctx.fillStyle = u[2] === 1 ? '#6af' : u[2] === 2 ? '#f66' : u[2] === 3 ? '#c6f' : '#fff'; mctx.fillRect(u[3] * f - 1.5, u[4] * f - 1.5, 3, 3); }
+  if (Math.floor(performance.now() / 300) % 2) { mctx.fillStyle = '#ff0'; for (const id of Object.keys(olentoMerkki)) { const u = cur.um.get(+id); if (u) mctx.fillRect(u[3] * f - 3, u[4] * f - 3, 6, 6); } }
   if (cur.hb && Math.floor(performance.now() / 300) % 2) { mctx.fillStyle = '#c6f'; mctx.fillRect(cur.hb[0] * f - 3, cur.hb[1] * f - 3, 6, 6); }
   if (cur.tap && cur.tap.paikat && Math.floor(performance.now() / 300) % 2) { mctx.fillStyle = '#fc0'; for (const pk of cur.tap.paikat) mctx.fillRect(pk[0] * f - 3, pk[1] * f - 3, 6, 6); }
   mctx.strokeStyle = '#fff'; mctx.lineWidth = 1;

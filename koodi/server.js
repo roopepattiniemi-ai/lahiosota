@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
-const { Game, TICK } = require('./game');
+const { Game, TICK, UNIT_TYPES } = require('./game');
 
 const PORT = +process.env.PORT || 3000;
 const ROOT = path.resolve(__dirname, '..');
@@ -95,6 +95,19 @@ wss.on('connection', (ws, req) => {
       if (msg.olento === 'vesihiisi') { g.nextHiisi = 0; const [c, r] = g.shore[0] || [0, 0]; const h = g.hq(team); if (h) g._spawnUnitNear(team, 'lahiojermu', c + 2, r); }
       if (msg.raha) g.players[team].money += Math.min(100000, +msg.raha || 0);
       if (msg.kanni) for (const u of g.units.values()) if (u.owner === team) u.k = Math.min(100, +msg.kanni);
+      if (msg.v4) { // V4-testaus: caesar | vana | mummo | tekstari | grilli | bileet | piiritys
+        const v = String(msg.v4), mine = [...g.units.values()].filter(u => u.owner === team);
+        const npc = (t) => [...g.units.values()].find(u => u.type === t);
+        if (v === 'caesar' && npc('hemuli')) g.muodonmuutos(npc('hemuli'));
+        if (v === 'vana' && npc('vana')) { const n = npc('vana'); n.ai = 'kanni'; n.aiT = 30; const h = g.hq(team); if (h) { n.x = h.x + 3; n.y = h.y + 3; n.path = null; } }
+        if (v === 'mummo' && npc('pullomummo')) { const n = npc('pullomummo'); const h = g.hq(team); if (h) { n.x = h.x + 2; n.y = h.y + 3; n.path = null; } for (const u of mine) u.carry = Math.max(u.carry, 3); }
+        if (v === 'tekstari' && mine[0]) { mine[0].k = 100; g.tekstariP = 1; setTimeout(() => { g.tekstariP = 0; }, 6000); }
+        if (v === 'grilli' || v === 'bileet' || v === 'piiritys') {
+          const b = g.buildings.find(x => x.tyyppi === (v === 'grilli' ? 'pihagrilli' : 'kerrostalo')); if (b) { b.owner = team; b.grilliT = 1; }
+          if (b && v !== 'grilli') for (let i = 0; i < (v === 'bileet' ? 4 : 6); i++) { const u = g._spawnUnitNear(team, 'lahiojermu', b.x, b.y + 2); u.state = 'talo'; u.target = { b: b.id }; u.path = null; }
+        }
+        return;
+      }
       if (msg.spawn) { const h = g.hq(team); g._spawnUnitNear(team, String(msg.spawn), h.x, h.y + 1.5); }
       return;
     }

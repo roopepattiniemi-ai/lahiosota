@@ -83,3 +83,15 @@ Karttadata © OpenStreetMap-tekijät (ODbL).
 - **Metsäpeikot** (puolueettomia, owner 3): ensimmäiset noin 2,5 min kohdalla ja sen jälkeen 70–120 s välein, enintään 3 kerrallaan, metsään vähintään 12 ruudun päähän päämajoista. Ne vaeltavat lähellä kotiaan, heittelevät kiviä, varastavat tölkkikuormia ja karjaisevat, jolloin lähellä olevat jalkaväet pakenevat. Jos peikkoon osuu, se suuttuu ampujalle. Kaatunut peikko pudottaa 6 tölkkiä ja kaikki varastamansa.
 - **Vesihiisi**: noin 3,3 min kohdalla ja sen jälkeen 45–80 s välein valitsee lammen tai järven rantaruudun, jonka lähellä (≤ 3 ruutua) on joukkoja. Ensin 4 s kuplia, sihinää ja varoitus, sitten se nousee 14 sekunniksi, iskee kaikkia 3 ruudun säteellä ja sukeltaa. Ampua voi, lähitaistelijat eivät pääse veteen.
 - Molemmista tulee banneri, karttamerkki ja puhekuplahuudot. Testaus harjoituksessa: `__lahiosota.send({t:'debug', olento:'peikot'})` tai `olento:'vesihiisi'`.
+
+## V4 – kerrostalot, tapahtumarakennukset, lumimyrsky, NPC:t
+- **Kerrostalot** (2–4 kpl kartan rakennusruuduista, ei kuvaa: omistajakehys + "Kerrostalo"): vallattava; omat jalkaväet oikealla klikkauksella sisään (max 6, eivät ole maalina), ampuvat talon keskeltä kantama +1,5. Infopaneelissa "Tyhjennä talo" (`{t:'tyhjenna', b}`). 4–5 sisällä: kotibileet → 10 s "Naapurit valittaa!" → 18 s häätö (k=95, hidastus 20 s). 6 sisällä: poliisipiiritys, 4 s → kaikki putkaan. Omistuksen vaihtuessa asukkaat heitetään ulos.
+- **Sauna** (puolueeton): känni laskee nopeasti, HP palautuu, ei puolusta; yli 25 s → sammuu 15 s. Uusi käsky = lähtee.
+- **Pihagrilli** (vallattava): omat 4 ruudun säteellä humaltuvat puolet hitaammin; 20 s välein `paljastus`-tapahtuma (vastustajalle vilkkuvat merkit).
+- **Pullonkerääjämummo** (owner 0): kerää tölkkikasoja. Oikea klikkaus häneen tölkkejä kantavilla = lahjonta 60 s, jonka aikana hänen keräämänsä kasat ovat lahjojan rahaa.
+- **Kirpputori** (puolueeton): 3 tölkkiä → satunnainen esine (kypärä −30 % vahinkoa, lenkkarit +20 % nopeus, muut turhia).
+- **Lumimyrsky** satunnaistapahtumana: nopeus ×0,6, mönkijä ×0,9, Lada 0.
+- **Kännitekstarit**: täysi känni → pieni todennäköisyys viestiin exälle; koko joukkueen sijainti paljastuu vastustajalle 8 s.
+- **Hemuli** (Peltolammin puolella): vaeltaa, syö kasveja; 20 % ateria → Puolijumala Caesar 30 s (owner 3, 400 HP, salama kaikkiin lähellä).
+- **Vänä** (Multisillan puolella): baari → känni 30 s, potkii jalkapalloa lähimpään (5 ruutua, 50 vahinkoa, 4 s välein) → takaisin baariin.
+- Debug (harjoitus): `{t:'debug', v4:'caesar'|'vana'|'mummo'|'tekstari'|'grilli'|'bileet'|'piiritys'}`, `{t:'debug', tap:'lumimyrsky'}`.

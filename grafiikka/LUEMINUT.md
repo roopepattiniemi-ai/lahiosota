@@ -120,3 +120,13 @@ Esikatselu 3x NEAREST: `esikatselu_olennot.png` (peikko metsätaustalla, hiisi +
 - `efektit/loiske_32.png` 128x32, 4 kehystä (pieni loiske -> pylväs -> pisarat -> rengas) – 10 fps, ankkuri (0.5, 0.75) = vedenpinta y=24.
 
 **Ikonit** (`ikonit/`): `tapahtuma_peikot.png`, `tapahtuma_vesihiisi.png` 32x32; `ui_peikko.png`, `ui_vesihiisi.png` 24x24 (rintakuvarajaus).
+
+## V4 – NPC:t, tapahtumarakennukset, lumi, poliisipiiritys – `python3 generoi_v4.py`
+Importtaa apufunktiot `generoi.py`/`generoi_v2.py`:stä. Puolueettomia, katsovat OIKEALLE, läpinäkyvä tausta, kehykset vaakarivinä. Hahmojen ankkuri (0.5, 0.9). Esikatselu 3x: `esikatselu_v4.png`.
+- `olennot/hemuli.png` 32x32, `hemuli_kavely.png` 128x32 (4 kehystä, 6 fps), `hemuli_syo.png` 64x32 (2 kehystä, 3 fps) – kukkahattu, mekko, tupakka + savu.
+- `olennot/hemuli_caesar.png` 48x48, `hemuli_caesar_kavely.png` 192x48 (4, 6 fps), `hemuli_caesar_hyokkays.png` 192x48 (4, 8 fps: käsi ylös -> lataus -> salama eteen -> häipyy) – seppele, toga, kultainen hehku.
+- `olennot/vana.png` 32x32, `vana_kavely.png` 128x32 (4, horjuva, 5 fps), `vana_potku.png` 128x32 (4, 8 fps; pallo lähtee kehyksessä 2) + `efektit/jalkapallo_8.png` 8x8 (ankkuri keskipiste).
+- `olennot/pullomummo.png` 32x32 + `pullomummo_kavely.png` 128x32 (4, 5 fps) – huivi, tölkkikärry.
+- `rakennukset/sauna.png`, `pihagrilli.png`, `kirpputori.png` 64x64 = 2x2 ruutua, vasen yläkulma = ruudun nurkka.
+- `efektit/lumi_64.png` 64x64 saumattomasti tiilittyvä lumipyry-overlay; `ikonit/tapahtuma_lumimyrsky.png` 32x32.
+- `efektit/poliisipiiritys_64.png` 256x64, 4 kehystä (4 fps loop), kerrostalon 64x64 alueen päälle samaan kohtaan: 2 poliisiautoa kulmissa, vilkkuvat valot, eristysnauha.
